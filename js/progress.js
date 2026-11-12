@@ -4,7 +4,7 @@
 
   // ---------- Niveaux ----------
   // XP cumulée nécessaire pour atteindre chaque niveau (index = niveau)
-  Z.XP_LEVELS = [0, 0, 150, 450, 900, 1500, 2300, 3300, 4500, 6000, 7800, 9800, 12000, 14500, 17300, 20500];
+  Z.XP_LEVELS = [0, 0, 150, 330, 700, 1300, 2200, 3300, 4500, 6000, 7800, 9800, 12000, 14500, 17300, 20500];
   Z.MAX_LEVEL = Z.XP_LEVELS.length - 1;
   Z.LEVEL_TITLES = ['', 'Ferme pédagogique', 'Mini-zoo', 'Parc animalier', 'Zoo municipal', 'Zoo régional', 'Parc zoologique', 'Zoo réputé', 'Grand parc', 'Zoo national', 'Réserve d’exception', 'Zoo de prestige', 'Sanctuaire', 'Zoo international', 'Référence mondiale', 'Légende des zoos'];
   const SP_LVL = { zebre: 1, kangourou: 1, singe: 2, paon: 2, girafe: 3, chevre: 4, lama: 4, lion: 5, flamant: 6, loutre: 6, loup: 7, croco: 7, tigre: 8, ours: 8, manchot: 9, hippo: 9, phoque: 10, rhino: 10, gorille: 11, elephant: 11, ourspol: 12, panda: 13 };
@@ -73,9 +73,9 @@
   };
 
   // ---------- Chantiers et livraisons ----------
-  Z.enclBuildHours = (w, h) => Math.round(6 + w * h * .3);
-  Z.bldBuildHours = t => BL[t].onPath ? 1 : BL[t].size === 1 ? (BL[t].cat === 'decor' ? 2 : 5) : 12;
-  Z.DELIVERY_HOURS = 14;
+  Z.enclBuildHours = (w, h) => Math.min(12, Math.round(5 + w * h * .12));
+  Z.bldBuildHours = t => BL[t].onPath ? 1 : BL[t].size === 1 ? (BL[t].cat === 'decor' ? 1 : 3) : 8;
+  Z.DELIVERY_HOURS = 8;
   Z.progressHourly = function () {
     const S = Z.S;
     for (const e of S.enclosures) {

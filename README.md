@@ -24,7 +24,7 @@ Jeu de gestion de zoo réaliste, jouable directement dans le navigateur (aucune 
 - **Modifier ses créations** : déplacer enclos et bâtiments, agrandir ou réduire un enclos, le renommer, transférer un animal.
 - **Progression** : 15 niveaux de zoo gagnés grâce à l'expérience (visiteurs satisfaits, naissances, nouvelles espèces, missions). Chaque niveau débloque habitats, espèces, bâtiments, employés et terrains, visibles sur une ligne de progression.
 - **Terrain** : on démarre sur une petite parcelle ; 14 parcelles voisines s'achètent selon le niveau.
-- **Temps réel de gestion** : les chantiers durent plusieurs heures de jeu, les animaux commandés sont livrés en 14 h, impôt de 20 % sur les bénéfices.
+- **Temps réel de gestion** : les chantiers durent 5 à 12 heures de jeu, les animaux commandés sont livrés en 8 h, la nuit peut être passée d'un clic, impôt de 20 % sur les bénéfices.
 - **Terrain** : ponts sur l'eau, bassins à creuser, remblais, arbres à planter ; rotation de la vue par quarts de tour.
 - **Files d'attente** : chaque stand et attraction a un débit ; les visiteurs patientent, renoncent si c'est trop long, ou paient un coupe-file.
 - **Événements** : canicule, tempête, épidémie, célébrité, reportage télé, vacances, grève, mécène, inspection surprise.

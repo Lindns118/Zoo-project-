@@ -6,22 +6,22 @@
 
   // weather = probabilités [soleil, nuages, pluie] · bm = multiplicateur du prix des habitats · lakes = [cx, cy, rx, ry]
   Z.WORLD = [
-    { id: 'france', name: 'Val de Loire', country: 'France', icon: '🏰', req: 0, money: 25000, demand: 1, wealth: 1, weather: [.5, .3, .2], trees: .07, seed: 11, lakes: [[8, 7, 6, 4]],
+    { id: 'france', name: 'Val de Loire', country: 'France', icon: '🏰', req: 0, money: 35000, demand: 1, wealth: 1, weather: [.5, .3, .2], trees: .07, seed: 11, lakes: [[8, 7, 6, 4]],
       bm: { foret: .8, polaire: 1.2 }, desc: 'Climat tempéré, public fidèle. La carte idéale pour débuter.',
       pal: { g: ['#84c25a', '#8bc960', '#7fbd55'], tuft: '#6fae49', sky: '#3c7a3a', trees: ['🌳', '🌳', '🌲'] } },
-    { id: 'kenya', name: 'Savane du Masaï Mara', country: 'Kenya', icon: '🦁', req: 4, money: 25000, demand: .85, wealth: .8, weather: [.75, .15, .1], trees: .03, seed: 23, lakes: [[46, 20, 4, 3]],
+    { id: 'kenya', name: 'Savane du Masaï Mara', country: 'Kenya', icon: '🦁', req: 4, money: 35000, demand: .85, wealth: .8, weather: [.75, .15, .1], trees: .03, seed: 23, lakes: [[46, 20, 4, 3]],
       bm: { savane: .6, desert: .8, aquatique: 1.3, polaire: 1.8, montagne: 1.3 }, desc: 'Soleil presque permanent. Les enclos de savane coûtent peu, le froid polaire est hors de prix. Visiteurs moins fortunés.',
       pal: { g: ['#c9c36a', '#d1c972', '#c2bb62'], tuft: '#a89f4e', sky: '#8a8438', trees: ['🌳', '🌴', '🌳'] } },
-    { id: 'canada', name: 'Rocheuses', country: 'Canada', icon: '🏔️', req: 6, money: 28000, demand: .9, wealth: 1.2, weather: [.35, .3, .35], trees: .16, seed: 37, lakes: [[44, 8, 8, 5], [7, 31, 4, 4]], snow: true,
+    { id: 'canada', name: 'Rocheuses', country: 'Canada', icon: '🏔️', req: 6, money: 38000, demand: .9, wealth: 1.2, weather: [.35, .3, .35], trees: .16, seed: 37, lakes: [[44, 8, 8, 5], [7, 31, 4, 4]], snow: true,
       bm: { montagne: .6, polaire: .7, foret: .8, savane: 1.5, desert: 1.6 }, desc: 'Neige fréquente, forêts de sapins à défricher, grands lacs. Montagne et banquise à prix réduit.',
       pal: { g: ['#dcebe2', '#e6f2ea', '#d0e3d8'], tuft: '#b0cabb', sky: '#5f7f86', trees: ['🌲', '🌲', '🌲'] } },
-    { id: 'bresil', name: 'Amazonie', country: 'Brésil', icon: '🌴', req: 8, money: 30000, demand: .9, wealth: .8, weather: [.4, .2, .4], trees: .24, seed: 41, lakes: [[10, 18, 6, 5], [47, 32, 5, 4]], river: 39,
+    { id: 'bresil', name: 'Amazonie', country: 'Brésil', icon: '🌴', req: 8, money: 40000, demand: .9, wealth: .8, weather: [.4, .2, .4], trees: .24, seed: 41, lakes: [[10, 18, 6, 5], [47, 32, 5, 4]], river: 39,
       bm: { foret: .6, aquatique: .7, polaire: 2, desert: 1.5, montagne: 1.3 }, desc: 'Jungle dense à défricher, et un fleuve à franchir par des ponts. Pluies abondantes. Forêt et zones humides bon marché.',
       pal: { g: ['#4f9e4a', '#58a852', '#479443'], tuft: '#377a36', sky: '#1f5a2c', trees: ['🌴', '🌳', '🌴'] } },
-    { id: 'australie', name: 'Outback', country: 'Australie', icon: '🪃', req: 10, money: 30000, demand: 1, wealth: 1.1, weather: [.82, .13, .05], trees: .02, seed: 53, lakes: [],
+    { id: 'australie', name: 'Outback', country: 'Australie', icon: '🪃', req: 10, money: 40000, demand: 1, wealth: 1.1, weather: [.82, .13, .05], trees: .02, seed: 53, lakes: [],
       bm: { desert: .6, savane: .8, aquatique: 1.5, polaire: 1.8, foret: 1.2 }, desc: 'Terre rouge, ciel sans nuages et presque pas d’eau. Désert et savane à bas prix.',
       pal: { g: ['#d99a5b', '#e0a465', '#d19152'], tuft: '#b97d42', sky: '#8a4f2a', trees: ['🌵', '🌴', '🌵'] } },
-    { id: 'japon', name: 'Baie de Tokyo', country: 'Japon', icon: '🗼', req: 12, money: 40000, demand: 1.5, wealth: 1.4, weather: [.5, .3, .2], trees: .05, seed: 67, lakes: [[28, -1, 34, 8]],
+    { id: 'japon', name: 'Baie de Tokyo', country: 'Japon', icon: '🗼', req: 12, money: 50000, demand: 1.5, wealth: 1.4, weather: [.5, .3, .2], trees: .05, seed: 67, lakes: [[28, -1, 34, 8]],
       bm: { savane: 1.3, foret: 1.3, montagne: 1.3, aquatique: 1.3, polaire: 1.3, desert: 1.3, prehist: 1.3 }, desc: 'Foule immense et visiteurs aisés, mais terrain rare : la baie occupe le nord et tout coûte 30 % plus cher.',
       pal: { g: ['#8fcf7a', '#97d683', '#86c771'], tuft: '#72b560', sky: '#3f7f55', trees: ['🌸', '🌳', '🌸'] } },
   ];

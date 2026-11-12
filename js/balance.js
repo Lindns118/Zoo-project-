@@ -59,6 +59,20 @@
     if (S.full > 15) Z.notify(`🚧 Parc saturé : environ ${Math.round(S.full)} personnes ont renoncé à entrer hier. Agrandissez les allées ou ajoutez des enclos et attractions (voir 🧑‍🤝‍🧑 Visiteurs).`, 'warn');
     S.fullY = S.full || 0; S.full = 0;
   };
+  // ---------- Prestige : à partir du niveau 7, le public accepte des prix plus élevés et dépense davantage ----------
+  Z.prestige = () => 1 + Math.max(0, Z.S.level - 6) * .05;
+  const oldFair = Z.fairPrice; Z.fairPrice = () => oldFair() * Z.prestige();
+  const oldSpawn = Z.onSpawn; Z.onSpawn = function (v) { v.money = Math.round(v.money * Z.prestige()); oldSpawn(v); };
+  // ---------- Passer la nuit : avance d'un coup jusqu'à 8 h quand le zoo est fermé et vide ----------
+  Z.canSkip = () => { const S = Z.S, m = S.minute; return !S.visitors.length && (m >= 19 * 60 || m < 8 * 60); };
+  Z.skipNight = function () { if (!Z.canSkip()) return; const m = Z.S.minute; Z.advance(m < 480 ? 480 - m : 1440 - m + 480); Z.notify('🌅 Bonjour ! Il est 8 h, le zoo ouvre dans une heure.', 'info'); };
+  Z.ACT.skipnight = Z.skipNight;
+  // ---------- Première mission guidée, dès le deuxième jour ----------
+  const oldD2 = Z.onDaily;
+  Z.onDaily = function () {
+    if (oldD2) oldD2(); const S = Z.S;
+    if (S.day === 2 && !S.firstM && !S.scn && !S.sandbox) { S.firstM = 1; S.missions.push({ k: 'school', id: S.nextId++, st: 'active', t: '🎟️ Première affluence', d: 'Accueillez 40 visiteurs en une seule journée. Il vous faut un enclos occupé relié à l’entrée, un soigneur et un caissier.', n: 40, days: 7, end: S.day + 7, from: S.day, money: 2500, xp: 90 }); Z.notify('📜 Première mission : accueillez 40 visiteurs en une journée (+2 500 €). Voir 🎯 Missions.', 'info'); }
+  };
   const oldMenu = Z.html.menu;
   Z.html.menu = () => oldMenu() + '<h3>Difficulté</h3><div class="btns col">' + Object.keys(Z.DIFF).map(k => { const d = Z.DIFF[k], on = (Z.S.diff || 'normal') === k; return `<button data-a="diff" data-k="${k}" ${on ? 'style="border-color:var(--acc);box-shadow:inset 0 0 0 1px var(--acc)"' : ''}>${d.icon} ${d.n}${on ? ' ✓' : ''}<small>${d.desc}</small></button>`; }).join('') + '</div>';
   Z.ACT.diff = d => { Z.S.diff = d.k; };

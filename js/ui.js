@@ -357,7 +357,7 @@
       <li><b>🏪 Services</b> — restauration, toilettes, bancs, poubelles et boutique gardent les visiteurs satisfaits.</li>
       <li><b>💶 Finances</b> — réglez le prix du billet. La réputation (★) attire le public et débloque de nouvelles espèces.</li>
       <li><b>🔬 Recherche</b> — financez des projets et embauchez des chercheurs pour débloquer de nouvelles espèces, des habitats (désert, préhistoire), des attractions (petit train, grande roue, aquarium, montagnes russes…) et des améliorations de gestion.</li>
-      <li><b>📈 Progression</b> — votre zoo gagne de l’expérience et monte de niveau (15 niveaux) : nouveaux habitats, espèces, bâtiments, employés et terrains. Les chantiers durent plusieurs heures et les animaux commandés sont livrés le lendemain.</li>
+      <li><b>📈 Progression</b> — votre zoo gagne de l’expérience et monte de niveau (15 niveaux) : nouveaux habitats, espèces, bâtiments, employés et terrains. Les chantiers durent quelques heures, les animaux commandés arrivent en 8 heures, et le bouton 🌙 permet de passer la nuit.</li>
       <li><b>↔️ Déplacer</b> — glissez un enclos ou un bâtiment pour le déplacer ; agrandissez un enclos depuis sa fiche.</li>
       <li><b>🎯 Missions</b> — acceptez des missions, suivez vos objectifs et lancez la campagne de 5 scénarios. <b>📊 Stats</b> et <b>👁️ Vues</b> vous aident à piloter.</li></ol>
       <p class="muted">Construction : vos tracés s’ajoutent à un plan ; rien n’est payé tant que vous n’avez pas touché ✅ Valider. Appui long puis glisser : déplacer la carte pendant une construction, ou saisir un bâtiment en mode Explorer. Molette ou deux doigts : zoom. Le zoo ouvre de 9 h à 19 h ; un an pour les animaux = 10 jours.</p>`, [['C’est parti !']]);
@@ -372,7 +372,8 @@
     $('#vis').textContent = S.visitors.length; $('#rep').innerHTML = `<span class="stars">${stars(r)}</span> ${r.toFixed(1).replace('.', ',')}`;
     $('#clock').textContent = `${Z.html.event()}${Z.html.season()} · ${WX[S.weather]} Jour ${S.day} · ${String(h).padStart(2, '0')}:${String(m - m % 10).padStart(2, '0')}`;
     $('#open').textContent = Z.isOpen() ? 'Ouvert' : 'Fermé'; $('#open').className = 'tag ' + (Z.isOpen() ? 'ok' : 'bad');
-    document.querySelectorAll('#speed button').forEach(b => b.classList.toggle('on', +b.dataset.v === S.speed));
+    const sk = $('#skip'); if (sk) sk.style.display = Z.canSkip() ? '' : 'none';
+    document.querySelectorAll('#speed button[data-v]').forEach(b => b.classList.toggle('on', +b.dataset.v === S.speed));
     const g = Z.GOALS[S.goal], sc = Z.scenario(); $('#goal').textContent = sc ? `${sc.icon} ${sc.name} — jour ${S.day}/${sc.days} · ${sc.goals.filter(x => x.c(S)).length}/${sc.goals.length} objectifs` : g ? '🎯 ' + g.t : '🏆 Tous les objectifs sont atteints !';
   }
 
