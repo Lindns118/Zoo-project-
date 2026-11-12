@@ -49,7 +49,7 @@
   // ---------- Prévisions ----------
   Z.dailyCosts = function () {
     const S = Z.S, c = { salaries: 0, upkeep: 0, food: 0, interest: 0, repay: 0 };
-    for (const s of S.staff) c.salaries += Z.STAFF[s.type].salary;
+    for (const s of S.staff) c.salaries += Z.salaryOf(s);
     for (const b of S.buildings) c.upkeep += BL[b.type].upkeep || 0;
     for (const e of S.enclosures) c.upkeep += e.w * e.h * .8;
     for (const e of S.enclosures) for (const a of e.animals) c.food += SP[a.sp].food * (a.age < 1 ? .5 : 1);

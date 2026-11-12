@@ -20,6 +20,13 @@ Jeu de gestion de zoo réaliste, jouable directement dans le navigateur (aucune 
 - **Progression** : 15 niveaux de zoo gagnés grâce à l'expérience (visiteurs satisfaits, naissances, nouvelles espèces, missions). Chaque niveau débloque habitats, espèces, bâtiments, employés et terrains, visibles sur une ligne de progression.
 - **Terrain** : on démarre sur une petite parcelle ; 14 parcelles voisines s'achètent selon le niveau.
 - **Temps réel de gestion** : les chantiers durent plusieurs heures de jeu, les animaux commandés sont livrés en 14 h, impôt de 20 % sur les bénéfices.
+- **Terrain** : ponts sur l'eau, bassins à creuser, remblais, arbres à planter ; rotation de la vue par quarts de tour.
+- **Files d'attente** : chaque stand et attraction a un débit ; les visiteurs patientent, renoncent si c'est trop long, ou paient un coupe-file.
+- **Événements** : canicule, tempête, épidémie, célébrité, reportage télé, vacances, grève, mécène, inspection surprise.
+- **Visiteurs** : familles, passionnés (fauves, oiseaux, primates, géants), visiteurs aisés, sorties scolaires ; avis en ligne ; abonnements annuels.
+- **Animaux** : généalogie et consanguinité, bourse d'échange entre zoos, réintroduction d'espèces menacées dans la nature.
+- **Carrière du personnel** : expérience et formation, salaires réglables, moral, grèves et démissions, zones de travail.
+- **Entrepôt** : la nourriture se commande et se stocke ; rupture de stock si on oublie.
 - **Recherche** : un budget quotidien et des chercheurs produisent des points pour 19 projets (animaux, attractions, gestion).
 - **Nouvelles espèces** : 19 espèces supplémentaires à débloquer par la recherche, dont deux habitats inédits (désert, préhistorique avec dinosaures).
 - **Attractions** : mini-ferme, petit train, vivarium, amphithéâtre, grande roue, aquarium, cinéma 4D, montagnes russes, tenues par des opérateurs ; décors à thème.

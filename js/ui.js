@@ -80,7 +80,7 @@
         h += `<h3>${sp.e} ${n} ${n > 1 ? sp.pl : sp.n.toLowerCase()} <small>(${n * sp.space}/${area} cases utilisées · attrait ${Math.round(Z.enclAppeal(e))})</small></h3>`;
         h += e.animals.map(a => `<div class="card"><div class="ctitle"><b>${sp.e} ${esc(a.name)}</b> <span class="muted">${a.sex === 'M' ? '♂' : '♀'} · ${a.age < 1 ? 'bébé' : Math.floor(a.age) + ' ans'}${a.preg ? ' · 🤰 gestation' : ''}</span>${a.sick ? '<span class="tag bad">malade</span>' : ''}</div>
           <div class="grid3"><div>Santé${bar(a.health)}</div><div>Bonheur${bar(a.happy)}</div><div>Satiété${bar(a.hunger)}</div></div>
-          <div class="btns">${a.sick ? `<button data-a="evet" data-id="${a.id}">🚑 Soin d’urgence — 500 €</button>` : ''}<button data-a="sell" data-id="${a.id}">Vendre (+${fmt(Z.animalValue(a))})</button>${xfer(a)}</div></div>`).join('');
+          <div class="btns">${a.sick ? `<button data-a="evet" data-id="${a.id}">🚑 Soin d’urgence — 500 €</button>` : ''}<button data-a="sell" data-id="${a.id}">Vendre (+${fmt(Z.animalValue(a))})</button>${xfer(a)}</div>${Z.html.animal(a)}</div>`).join('');
       }
       const rz = (sd, d, lbl) => { const r = Z.resizeInfo(e, sd, d); return `<button ${r ? '' : 'disabled'} data-a="resize" data-s="${sd}" data-d="${d}">${lbl}${r && r.cost ? `<small>${fmt(r.cost)}</small>` : ''}</button>`; };
       h += `<h3>Modifier l’enclos</h3><div class="btns"><button data-a="rename">✏️ Renommer</button></div><p class="muted">Agrandir d’une rangée :</p><div class="btns">${rz('n', 1, '⬆️ Nord')}${rz('s', 1, '⬇️ Sud')}${rz('w', 1, '⬅️ Ouest')}${rz('e', 1, '➡️ Est')}</div><p class="muted">Réduire d’une rangée :</p><div class="btns">${rz('n', -1, 'Nord')}${rz('s', -1, 'Sud')}${rz('w', -1, 'Ouest')}${rz('e', -1, 'Est')}</div><p class="muted">Pour le déplacer : outil ↔️ Déplacer.</p>`;
@@ -92,6 +92,7 @@
           <p class="muted">Espace : ${s.space} cases/animal · Groupe : ${s.grp} min. · Nourriture : ${s.food} €/j · Attrait : ${s.app}</p>
           ${ok ? `<div class="btns"><button data-a="buy" data-k="${k}" data-s="M">Acheter un mâle ♂</button><button data-a="buy" data-k="${k}" data-s="F">Acheter une femelle ♀</button></div>` : `<p>🔒 ${s.res ? 'À débloquer par la recherche : ' + Z.RESEARCH[s.res].name : 'Disponible au niveau ' + s.lvl}</p>`}</div>`;
       }).join('');
+      h += Z.html.encl(e);
       if (!n) h += `<div class="btns"><button class="danger" data-a="demoencl">🧨 Démolir l’enclos</button></div>`;
       return { title: esc(e.name), html: h };
     },
@@ -103,23 +104,25 @@
       if (!b.acc.length && d.cat === 'shop') h += '<div class="warn">⚠️ Aucune allée reliée à l’entrée ne touche ce bâtiment</div>';
       if (d.price) h += `<label>Prix de vente : <b id="rv">${fmt(b.price)}</b> <span class="muted">(conseillé ${fmt(d.price)})</span><input type="range" min="${d.price * .4}" max="${d.price * 2.5}" step="0.5" value="${b.price}" data-r="price"></label>` + row('Ventes aujourd’hui', b.sold) + row('Coût par vente', fmt(d.goods));
       if (d.upkeep) h += row('Entretien', fmt(d.upkeep) + '/jour');
+      h += Z.html.bld(b);
       h += `<div class="btns"><button class="danger" data-a="demobld">🧨 Démolir (+${fmt(d.cost * .3)})</button></div>`;
       return { title: d.icon + ' ' + d.name, html: h };
     },
     vis(id) {
       const v = ent(id); if (!v) return null;
       const act = v.leaving ? 'Rentre à la maison' : v.st === 'busy' ? (v.act ? 'Observe les animaux' : 'Fait une pause') : v.goal ? { encl: 'Va voir des animaux', food: 'Va manger', drink: 'Va boire', toilet: 'Cherche les toilettes', bench: 'Va se reposer', gift: 'Va à la boutique' }[v.goal.k] : 'Se promène';
-      let h = `<p class="muted">${v.kid ? 'Enfant' : 'Adulte'} · ${act}</p>` + (v.thought ? `<div class="quote">💭 ${esc(v.thought)}</div>` : '');
+      let h = `<p class="muted">${v.kid ? 'Enfant' : 'Adulte'} · ${act}</p>` + Z.html.visitor(v) + (v.thought ? `<div class="quote">💭 ${esc(v.thought)}</div>` : '');
       h += `<div class="grid2"><div>Satisfaction${bar(v.happy)}</div><div>Faim${bar(v.hunger)}</div><div>Soif${bar(v.thirst)}</div><div>Toilettes${bar(v.bladder)}</div><div>Énergie${bar(v.energy)}</div></div>`;
       h += row('Argent de poche', fmt(v.money)) + row('Enclos visités', v.nseen);
       return { title: '🧑 ' + esc(v.name), html: h };
     },
     staffm(id) {
       const s = ent(id); if (!s) return null; const d = Z.STAFF[s.type];
-      return { title: d.icon + ' ' + esc(s.name), html: `<p class="muted">${d.name} · ${fmt(d.salary)}/jour</p>` + row('Activité', esc(Z.staffLabel(s))) + `<div class="btns"><button class="danger" data-a="fire" data-id="${s.id}">Licencier</button></div>` };
+      return { title: d.icon + ' ' + esc(s.name), html: `<p class="muted">${d.name}</p>` + row('Activité', esc(Z.staffLabel(s))) + Z.html.staffm(s) + `<div class="btns"><button class="danger" data-a="fire" data-id="${s.id}">Licencier</button></div>` };
     },
     staff() {
       const S = Z.S, nd = Z.staffNeeds(); let h = '<p class="muted">Les besoins dépendent du nombre d’animaux, d’enclos, de visiteurs, d’allées et de commerces. Ils sont recalculés en permanence.</p>';
+      h += Z.html.staffTop();
       if (S.lostY > 5 || S.lost > 5) h += `<div class="warn">🎟️ File d’attente à l’entrée : ${Math.round(S.lost || 0)} visiteurs perdus aujourd’hui, ${Math.round(S.lostY || 0)} hier.</div>`;
       for (const k in Z.STAFF) {
         const d = Z.STAFF[k], list = S.staff.filter(s => s.type === k), n = nd[k], un = Z.staffUnlocked(k);
@@ -143,6 +146,7 @@
         return `<div class="card click" data-a="goto" data-id="${e.id}"><div class="ctitle"><b>${sp ? sp.e : BIO[e.biome].icon} ${esc(e.name)}</b><span class="muted">${n ? n + ' ' + (n > 1 ? sp.pl : sp.n.toLowerCase()) : 'vide'}</span></div>
           ${n ? `<div class="grid3"><div>Bonheur${bar(Z.avg(e, 'happy'))}</div><div>Santé${bar(Z.avg(e, 'health'))}</div><div>Nourriture${bar(e.food)}</div></div>` : ''}${iss.length ? `<p class="bad">⚠️ ${esc(iss[0])}</p>` : ''}</div>`;
       }).join('');
+      h += Z.html.stock();
       h += '<h3>Espèces à débloquer</h3>' + Object.keys(SP).filter(k => !Z.speciesUnlocked(k)).map(k => `<div class="row"><span>${SP[k].e} ${SP[k].n} <span class="muted">(${BIO[SP[k].b].name})</span></span><b>${Z.lockLabel(SP[k])}</b></div>`).join('');
       return { title: '🦁 Animaux', html: h };
     },
@@ -150,6 +154,7 @@
       const S = Z.S, n = S.visitors.length, av = k => n ? S.visitors.reduce((s, v) => s + v[k], 0) / n : 0, r = Z.rep();
       let h = row('Réputation', `<span class="stars">${stars(r)}</span> ${r.toFixed(1).replace('.', ',')}`) + row('Dans le zoo', n) + row('Aujourd’hui', S.fin.vis) + row('Depuis l’ouverture', S.stats.visitors) + row('Affluence estimée', Math.round(Z.demand()) + ' /heure');
       if (n) h += `<h3>Moyennes</h3><div class="grid2"><div>Satisfaction${bar(av('happy'))}</div><div>Faim${bar(av('hunger'))}</div><div>Soif${bar(av('thirst'))}</div><div>Toilettes${bar(av('bladder'))}</div><div>Énergie${bar(av('energy'))}</div></div>`;
+      h += Z.html.visitors();
       h += '<h3>Ce qu’ils disent</h3>' + (Z.thoughts.length ? Z.thoughts.map(t => `<div class="quote">💭 ${esc(t)}</div>`).join('') : '<p class="muted">Pas encore d’avis. Le zoo ouvre de 9 h à 19 h.</p>');
       return { title: '🧑‍🤝‍🧑 Visiteurs', html: h };
     },
@@ -281,6 +286,7 @@
   };
 
   // ---------- Actions ----------
+  Z.refreshPanel = () => renderPanel(true);
   const ACT = {
     tool: d => setTool(d.id), arg: d => { ui.arg = d.id; renderTools(); }, close: closePanel,
     speed: d => { Z.S.speed = +d.v; updateTop(); },
@@ -308,12 +314,14 @@
     reset: () => modal('Nouvelle partie ?', '<p>Votre zoo actuel sera définitivement effacé.</p>', [['Annuler'], ['Tout effacer', () => { Z.restart(null); showHelp(); }, 'danger']]),
     modalbtn: d => { const f = modalBtns[+d.i]; $('#modal').style.display = 'none'; if (f) f(); },
   };
+  Object.assign(ACT, Z.extraActs || {});
   document.addEventListener('click', ev => {
     const el = ev.target.closest('[data-a]'); if (!el) return;
     const f = ACT[el.dataset.a]; if (f) { f(el.dataset); renderPanel(true); updateTop(); }
   });
   document.addEventListener('input', ev => {
     const r = ev.target.dataset.r; if (!r) return; const v = +ev.target.value;
+    if (Z.extraRange[r]) { const o = $('#rv'); if (o) o.textContent = Z.extraRange[r](v); return; }
     if (r === 'ticket') Z.S.ticket = v; else if (r === 'rbudget') Z.S.research.budget = v; else { const b = ent(ui.parg); if (b) b.price = v; }
     const o = $('#rv'); if (o) o.textContent = fmt(v);
   });
@@ -361,7 +369,7 @@
     $('#money').textContent = fmt(S.money); $('#money').className = S.money < 0 ? 'bad' : '';
     const xi = Z.xpInfo(); $('#lvl').innerHTML = `⭐ Niv. <b>${S.level}</b><span class="xpbar"><i style="width:${xi.pct}%"></i></span>`;
     $('#vis').textContent = S.visitors.length; $('#rep').innerHTML = `<span class="stars">${stars(r)}</span> ${r.toFixed(1).replace('.', ',')}`;
-    $('#clock').textContent = `${WX[S.weather]} Jour ${S.day} · ${String(h).padStart(2, '0')}:${String(m - m % 10).padStart(2, '0')}`;
+    $('#clock').textContent = `${Z.html.event()}${WX[S.weather]} Jour ${S.day} · ${String(h).padStart(2, '0')}:${String(m - m % 10).padStart(2, '0')}`;
     $('#open').textContent = Z.isOpen() ? 'Ouvert' : 'Fermé'; $('#open').className = 'tag ' + (Z.isOpen() ? 'ok' : 'bad');
     document.querySelectorAll('#speed button').forEach(b => b.classList.toggle('on', +b.dataset.v === S.speed));
     const g = Z.GOALS[S.goal], sc = Z.scenario(); $('#goal').textContent = sc ? `${sc.icon} ${sc.name} — jour ${S.day}/${sc.days} · ${sc.goals.filter(x => x.c(S)).length}/${sc.goals.length} objectifs` : g ? '🎯 ' + g.t : '🏆 Tous les objectifs sont atteints !';

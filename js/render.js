@@ -198,6 +198,7 @@
       else if (e.animals.length) { let ic = ''; if (e.food <= 0) ic += '🍽️'; if (e.clean < 30) ic += '💩'; if (e.fence < 30) ic += '🔧'; if (!e.vp.length) ic += '🚫'; if (ic) { ctx.fillStyle = 'rgba(255,255,255,.92)'; rr(ctx, cx - 10 - ic.length * 3.2, cy - 52, 20 + ic.length * 6.4, 20, 10); ctx.fill(); emoji(ctx, ic, cx, cy - 41, 12); } }
       else if (!e.vp.length) emoji(ctx, '🚫', cx, cy - 6, 18);
     }
+    for (const b of S.buildings) { const q = Z.queueLen(b); if (q >= 3) { const s = BL[b.type].size; label('👥 ' + q, px(b.x + s / 2, b.y + s / 2), py(b.x + s / 2, b.y + s / 2) - 44 - s * 10, q > 12 ? 'rgba(200,50,30,.9)' : 'rgba(60,60,60,.8)', 11); } }
     for (const p of Z.PARCELS) { if (S.land[p.id]) continue; const ok = p.lvl <= S.level && Z.adjacentOwned(p); label(ok ? '🗺️ À vendre · ' + fmt(p.price) : '🔒 Niveau ' + p.lvl, px(p.x + p.w / 2, p.y + p.h / 2), py(p.x + p.w / 2, p.y + p.h / 2), ok ? 'rgba(47,143,78,.92)' : 'rgba(30,30,30,.7)'); }
     // plan de construction et aperçu
     for (const it of (Z.plan || [])) {
