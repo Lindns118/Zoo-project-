@@ -15,7 +15,7 @@
   // ---------- Partie ----------
   Z.newGame = function (scn) {
     const S = {
-      v: 1, money: 30000, day: 1, minute: 8 * 60, lastHour: 8, speed: 1, ticket: 8,
+      v: 1, money: 20000, day: 1, minute: 8 * 60, lastHour: 8, speed: 1, ticket: 8,
       ground: new Array(W * H).fill(0), litter: new Array(W * H).fill(0),
       enclosures: [], buildings: [], staff: [], visitors: [], nextId: 1,
       ratings: [], fin: { today: {}, vis: 0, history: [] }, loan: 0, weather: 'sun',
@@ -186,7 +186,7 @@
   };
 
   // ---------- Construction ----------
-  const freeTile = (x, y) => inb(x, y) && Z.S.ground[idx(x, y)] === 0 && !Z.occ[idx(x, y)];
+  const freeTile = (x, y) => inb(x, y) && Z.S.ground[idx(x, y)] === 0 && !Z.occ[idx(x, y)] && Z.owned(x, y);
   Z.freeRect = function (x, y, w, h) { for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) if (!freeTile(i, j)) return false; return true; };
   Z.buildPath = function (x, y) {
     if (!freeTile(x, y) || !Z.pay('build', 12)) return false;
@@ -196,9 +196,10 @@
   Z.buildEncl = function (x, y, w, h, biome) {
     if (w < 2 || h < 2 || w * h < 6) { Z.notify('Enclos trop petit (6 cases minimum)', 'bad'); return null; }
     if (Z.S.rules.biomes && !Z.S.rules.biomes.includes(biome)) { Z.notify('Cet habitat n’est pas autorisé dans ce scénario', 'bad'); return null; }
-    if (!Z.freeRect(x, y, w, h)) { Z.notify('Emplacement occupé', 'bad'); return null; }
+    if (!Z.biomeUnlocked(biome)) { Z.notify('Habitat disponible au niveau ' + Z.BIOMES[biome].lvl, 'bad'); return null; }
+    if (!Z.freeRect(x, y, w, h)) { Z.notify('Emplacement occupé ou terrain non acheté', 'bad'); return null; }
     if (!Z.pay('build', Z.enclCost(w, h, biome))) return null;
-    const S = Z.S, e = { id: S.nextId++, kind: 'encl', x, y, w, h, biome, name: 'Enclos ' + Z.BIOMES[biome].name.toLowerCase() + ' n°' + (S.enclosures.length + 1), animals: [], food: 100, clean: 100, fence: 100, up: {}, vp: [] };
+    const S = Z.S, e = { id: S.nextId++, kind: 'encl', x, y, w, h, biome, name: 'Enclos ' + Z.BIOMES[biome].name.toLowerCase() + ' n°' + (S.enclosures.length + 1), animals: [], food: 100, clean: 100, fence: 100, up: {}, vp: [], bt: Z.enclBuildHours(w, h), pending: [] };
     S.enclosures.push(e); Z.rebuild(false); return e;
   };
   Z.place = function (type, x, y) {
@@ -206,13 +207,13 @@
     if (!Z.bldUnlocked(type)) { Z.notify('Bâtiment pas encore débloqué', 'bad'); return null; }
     if (!Z.freeRect(x, y, d.size, d.size)) { Z.notify('Emplacement occupé', 'bad'); return null; }
     if (!Z.pay('build', d.cost)) return null;
-    const S = Z.S, b = { id: S.nextId++, kind: 'bld', type, x, y, sold: 0, acc: [] }; if (d.price) b.price = d.price;
+    const S = Z.S, b = { id: S.nextId++, kind: 'bld', type, x, y, sold: 0, acc: [], bt: Z.bldBuildHours(type) }; if (d.price) b.price = d.price;
     S.buildings.push(b); Z.rebuild(false); return b;
   };
   Z.demolish = function (x, y) {
     if (!inb(x, y)) return false; const S = Z.S, t = idx(x, y), o = Z.occ[t];
     if (o && o.kind === 'encl') {
-      if (o.animals.length) { Z.notify('Vendez ou déplacez d’abord les animaux de cet enclos', 'bad'); return false; }
+      if (o.animals.length || (o.pending && o.pending.length)) { Z.notify('Vendez ou déplacez d’abord les animaux de cet enclos', 'bad'); return false; }
       S.enclosures.splice(S.enclosures.indexOf(o), 1); S.money += Z.enclCost(o.w, o.h, o.biome) * .3;
     } else if (o) { S.buildings.splice(S.buildings.indexOf(o), 1); S.money += BL[o.type].cost * .3; }
     else if (S.ground[t] === 1) { if (x === EX && y >= H - 2) return false; S.ground[t] = 0; }
@@ -230,13 +231,17 @@
     return { id: Z.S.nextId++, sp: spk, name: pick(Z.ANIMAL_NAMES), sex, age, hunger: 90, health: 100, happy: 70, sick: 0, preg: 0, x: rnd(e.x + .6, e.x + e.w - .6), y: rnd(e.y + .6, e.y + e.h - .6), tx: 0, ty: 0, wait: rnd(0, 30), dir: 1 };
   }
   Z.speciesUnlocked = k => SP[k].rep <= 0 || !!Z.S.unlocked[k];
-  Z.buyAnimal = function (e, spk, sex) {
+  Z.makeAnimal = makeAnimal;
+  Z.buyAnimal = function (e, spk, sex, instant) {
+    if (e.bt > 0 && !instant) return Z.notify('L’enclos est encore en chantier', 'bad');
     const sp = SP[spk];
     if (sp.b !== e.biome) return Z.notify('Le ' + sp.n.toLowerCase() + ' a besoin d’un habitat « ' + Z.BIOMES[sp.b].name + ' »', 'bad');
     if (e.animals.length && e.animals[0].sp !== spk) return Z.notify('Une seule espèce par enclos', 'bad');
     if (!Z.speciesUnlocked(spk)) return Z.notify('Espèce pas encore disponible', 'bad');
     if (!Z.pay('animals', sp.price)) return;
-    const a = makeAnimal(e, spk, sex, sp.mat + rnd(0, 3)); a.tx = a.x; a.ty = a.y; e.animals.push(a); return a;
+    const age = sp.mat + rnd(0, 3);
+    if (!instant) { (e.pending = e.pending || []).push({ sp: spk, sex, age, eta: Z.DELIVERY_HOURS }); Z.notify('📦 ' + sp.n + ' commandé(e) : livraison dans ' + Z.DELIVERY_HOURS + ' h', 'info'); return true; }
+    const a = makeAnimal(e, spk, sex, age); a.tx = a.x; a.ty = a.y; e.animals.push(a); return a;
   };
   Z.animalValue = a => SP[a.sp].price * (a.age < SP[a.sp].mat ? .3 : a.age > SP[a.sp].life * .8 ? .2 : .5) * (a.sick ? .5 : 1);
   Z.sellAnimal = function (e, a) {
@@ -300,7 +305,7 @@
         a.age += .1;
         if (a.age > sp.life && Math.random() < .08) { die(e, a, 'de vieillesse', false); continue; }
         if (a.preg > 0 && --a.preg <= 0) {
-          const b = makeAnimal(e, a.sp, Math.random() < .5 ? 'M' : 'F', 0); b.x = b.tx = a.x; b.y = b.ty = a.y; e.animals.push(b); S.stats.births++;
+          const b = makeAnimal(e, a.sp, Math.random() < .5 ? 'M' : 'F', 0); b.x = b.tx = a.x; b.y = b.ty = a.y; e.animals.push(b); S.stats.births++; Z.xp(35);
           Z.notify('🍼 Naissance ! ' + a.name + ' a donné naissance à ' + b.name + ' (' + sp.n.toLowerCase() + ')', 'good', e);
         }
       }
@@ -327,7 +332,7 @@
     Z.earn('tickets', S.ticket); S.stats.visitors++; S.fin.vis++; S.visitors.push(v);
   }
   function goBuilding(v, type) {
-    const ts = [].concat(type), all = Z.S.buildings.filter(b => ts.includes(b.type) && b.acc.length); if (!all.length) return false;
+    const ts = [].concat(type), all = Z.S.buildings.filter(b => ts.includes(b.type) && b.acc.length && !b.bt); if (!all.length) return false;
     const goals = []; for (const b of all) for (const t of b.acc) goals.push(t);
     const p = Z.findPath(tileOf(v), goals); if (!p) return false;
     const end = p.length ? p[p.length - 1] : tileOf(v);
@@ -367,7 +372,7 @@
   }
   function arrive(v) {
     const S = Z.S, g = v.goal; v.goal = null; v.st = 'idle'; if (!g) return;
-    if (g.k === 'exit') { v.gone = true; S.ratings.push(clamp((v.happy - 20) / 16, 0, 5)); if (S.ratings.length > 80) S.ratings.splice(0, S.ratings.length - 80); return; }
+    if (g.k === 'exit') { v.gone = true; Z.xp(Math.max(0, v.happy - 25) / 110); S.ratings.push(clamp((v.happy - 20) / 16, 0, 5)); if (S.ratings.length > 80) S.ratings.splice(0, S.ratings.length - 80); return; }
     if (g.k === 'encl') { v.st = 'busy'; v.t = rnd(18, 35); v.act = g; return; }
     const b = S.buildings.find(b => b.id === g.id); if (!b) return;
     if (g.k === 'toilet') { v.bladder = 100; v.st = 'busy'; v.t = 6; }
@@ -408,7 +413,7 @@
   // ---------- Personnel ----------
   const FIRST = ['Marie', 'Thomas', 'Sophie', 'Julien', 'Laura', 'Kevin', 'Élise', 'Mehdi', 'Anna', 'Bruno', 'Clara', 'David', 'Fatou', 'Rémi', 'Nora', 'Yann'];
   Z.hire = function (type) {
-    const S = Z.S; if (!Z.pay('salaries', 200)) return null;
+    const S = Z.S; if (!Z.staffUnlocked(type)) { Z.notify('Poste disponible au niveau ' + Z.STAFF[type].lvl, 'bad'); return null; } if (!Z.pay('salaries', 200)) return null;
     const s = { id: S.nextId++, kind: 'staff', type, name: pick(FIRST), x: EX + .5, y: EY + .5, ox: rnd(-.2, .2), oy: rnd(-.2, .2), st: 'idle', cool: 1, t: 0, task: null, path: null };
     S.staff.push(s); return s;
   };
@@ -467,22 +472,24 @@
   // ---------- Horloge ----------
   function checkUnlocks(silent) {
     const S = Z.S, r = Z.rep();
-    for (const k in SP) if (SP[k].rep > 0 && !S.unlocked[k] && r >= SP[k].rep) { S.unlocked[k] = 1; if (!silent) Z.notify('🔓 Nouvelle espèce disponible : ' + SP[k].e + ' ' + SP[k].n, 'good'); }
+    for (const k in SP) if (false) { S.unlocked[k] = 1; if (!silent) Z.notify('🔓 Nouvelle espèce disponible : ' + SP[k].e + ' ' + SP[k].n, 'good'); }
   }
   function checkGoals() {
     const S = Z.S; if (S.scn) return;
     while (S.goal < Z.GOALS.length && Z.GOALS[S.goal].c(S)) {
-      const g = Z.GOALS[S.goal]; S.goal++; Z.earn('rewards', g.r);
+      const g = Z.GOALS[S.goal]; S.goal++; Z.earn('rewards', g.r); Z.xp(g.r / 40);
       Z.notify('🎯 Objectif atteint : ' + g.t + ' (+' + Z.fmt(g.r) + ')', 'good');
       for (const k in BL) if (BL[k].need === S.goal - 1) Z.notify('🔓 Nouveau bâtiment disponible : ' + BL[k].icon + ' ' + BL[k].name, 'good');
     }
   }
-  function hourly() { animalsHourly(); checkUnlocks(false); checkGoals(); if (Z.onHourly) Z.onHourly(); }
+  function hourly() { Z.progressHourly(); animalsHourly(); checkUnlocks(false); checkGoals(); if (Z.onHourly) Z.onHourly(); }
   function daily() {
     const S = Z.S;
     for (const s of S.staff) Z.spend('salaries', Z.STAFF[s.type].salary);
+    for (const e of S.enclosures) Z.spend('upkeep', e.w * e.h * .8);
     for (const b of S.buildings) { if (BL[b.type].upkeep) Z.spend('upkeep', BL[b.type].upkeep); b.sold = 0; }
     Z.bankDaily();
+    { let p = 0; for (const k in S.fin.today) if (k !== 'rewards' && k !== 'sales') p += S.fin.today[k]; if (p > 0) Z.spend('tax', p * .2); }
     let inc = 0, exp = 0; for (const k in S.fin.today) { const v = S.fin.today[k]; if (v > 0) inc += v; else exp -= v; }
     S.fin.history.push({ d: S.day, inc, exp, vis: S.fin.vis, cats: S.fin.today, money: S.money, rep: Z.rep(), an: Z.animalCount(), val: Z.zooValue() }); if (S.fin.history.length > 60) S.fin.history.shift();
     if (S.fin.vis > S.stats.bestDay) S.stats.bestDay = S.fin.vis;
@@ -497,7 +504,7 @@
     if (S.minute >= 1440) { S.minute -= 1440; S.lastHour = -1; daily(); }
     const h = Math.floor(S.minute / 60); if (h !== S.lastHour) { S.lastHour = h; hourly(); }
     const hr = S.minute / 60;
-    if (hr >= 9 && hr < 17.5 && S.visitors.length < 500 && Math.random() < Z.demand() / 60 * dt) spawnVisitor();
+    if (hr >= 9 && hr < 17.5) { S.spawnAcc = (S.spawnAcc || 0) + Z.demand() / 60 * dt * Z.rnd(.5, 1.5); while (S.spawnAcc >= 1) { S.spawnAcc--; if (S.visitors.length < 700) spawnVisitor(); } }
     for (const v of S.visitors) visitorUpdate(v, dt);
     if (S.visitors.some(v => v.gone)) S.visitors = S.visitors.filter(v => !v.gone);
     if (hr >= 21 && S.visitors.length) S.visitors = [];

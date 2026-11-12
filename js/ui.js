@@ -21,18 +21,18 @@
   // ---------- Barre d'outils ----------
   const TOOLS = [
     ['select', '🖐️', 'Explorer'], ['path', '🛣️', 'Allées'], ['encl', '🚧', 'Enclos'], ['shop', '🏪', 'Services'], ['decor', '🌳', 'Décor'], ['move', '↔️', 'Déplacer'], ['demo', '🧨', 'Démolir'],
-    ['|'], ['p:staff', '👷', 'Personnel'], ['p:animals', '🦁', 'Animaux'], ['p:visitors', '🧑‍🤝‍🧑', 'Visiteurs'], ['p:fin', '💶', 'Finances'], ['p:stats', '📊', 'Stats'], ['p:goals', '🎯', 'Missions'], ['view', '👁️', 'Vues'], ['p:menu', '⚙️', 'Menu'],
+    ['|'], ['p:staff', '👷', 'Personnel'], ['p:animals', '🦁', 'Animaux'], ['p:visitors', '🧑‍🤝‍🧑', 'Visiteurs'], ['p:fin', '💶', 'Finances'], ['p:prog', '📈', 'Progression'], ['p:stats', '📊', 'Stats'], ['p:goals', '🎯', 'Missions'], ['view', '👁️', 'Vues'], ['p:menu', '⚙️', 'Menu'],
   ];
   function renderTools() {
     $('#tools').innerHTML = TOOLS.map(t => t[0] === '|' ? '<span class="sep"></span>' :
       `<button class="tool ${ui.tool === t[0] || (t[0] === 'view' && ui.view) || (ui.panel && 'p:' + ui.panel === t[0]) ? 'on' : ''}" data-a="tool" data-id="${t[0]}"><b>${t[1]}</b><span>${t[2]}</span></button>`).join('');
     let sub = '';
-    if (ui.tool === 'encl') sub = Object.keys(BIO).filter(k => !Z.S.rules.biomes || Z.S.rules.biomes.includes(k)).map(k => `<button class="chip ${ui.arg === k ? 'on' : ''}" data-a="arg" data-id="${k}">${BIO[k].icon} ${BIO[k].name}<small>${BIO[k].cost} €/case</small></button>`).join('');
-    if (ui.tool === 'shop' || ui.tool === 'decor') sub = Object.keys(BL).filter(k => BL[k].cat === ui.tool).map(k => !Z.bldUnlocked(k) ? `<button class="chip locked" disabled>🔒 ${BL[k].name}<small>Objectif n°${BL[k].need + 1}</small></button>` : `<button class="chip ${ui.arg === k ? 'on' : ''}" data-a="arg" data-id="${k}" title="${esc(BL[k].desc)}">${BL[k].icon} ${BL[k].name}<small>${fmt(BL[k].cost)}</small></button>`).join('');
+    if (ui.tool === 'encl') sub = Object.keys(BIO).filter(k => !Z.S.rules.biomes || Z.S.rules.biomes.includes(k)).map(k => !Z.biomeUnlocked(k) ? `<button class="chip locked" disabled>🔒 ${BIO[k].name}<small>Niveau ${BIO[k].lvl}</small></button>` : `<button class="chip ${ui.arg === k ? 'on' : ''}" data-a="arg" data-id="${k}">${BIO[k].icon} ${BIO[k].name}<small>${BIO[k].cost} €/case</small></button>`).join('');
+    if (ui.tool === 'shop' || ui.tool === 'decor') sub = Object.keys(BL).filter(k => BL[k].cat === ui.tool).map(k => !Z.bldUnlocked(k) ? `<button class="chip locked" disabled>🔒 ${BL[k].name}<small>Niveau ${BL[k].lvl}</small></button>` : `<button class="chip ${ui.arg === k ? 'on' : ''}" data-a="arg" data-id="${k}" title="${esc(BL[k].desc)}">${BL[k].icon} ${BL[k].name}<small>${fmt(BL[k].cost)}</small></button>`).join('');
     $('#sub').innerHTML = sub; $('#sub').style.display = sub ? 'flex' : 'none';
     const hints = {
       select: '', path: 'Glissez pour tracer une allée (12 €/case). Les visiteurs et le personnel ne marchent que sur les allées.',
-      encl: 'Choisissez un habitat puis glissez pour dessiner l’enclos. Une allée doit le longer.',
+      encl: 'Choisissez un habitat puis glissez pour dessiner l’enclos sur votre terrain. Une allée doit le longer. Le chantier dure plusieurs heures.',
       shop: BL[ui.arg] ? BL[ui.arg].desc + ' À placer le long d’une allée.' : '', decor: BL[ui.arg] ? BL[ui.arg].desc : '',
       move: 'Glissez un bâtiment ou un enclos (avec ses animaux) vers son nouvel emplacement. Coût : 10 % de son prix.',
       demo: 'Touchez une allée, un bâtiment ou un enclos vide pour le démolir (30 % remboursés).',
@@ -66,6 +66,8 @@
     encl(id) {
       const e = ent(id); if (!e) return null; const n = e.animals.length, area = e.w * e.h, bio = BIO[e.biome];
       let h = `<p class="muted">${bio.icon} Habitat ${bio.name.toLowerCase()} · ${e.w}×${e.h} = ${area} cases</p>`;
+      if (e.bt > 0) h += `<div class="warn">🏗️ Chantier en cours : encore ${e.bt} h de travaux${bar(100 - e.bt / Z.enclBuildHours(e.w, e.h) * 100, '#e0a020')}</div>`;
+      if (e.pending && e.pending.length) h += `<div class="warn">📦 En livraison : ${e.pending.map(d => SP[d.sp].e + ' ' + (d.sex === 'M' ? '♂' : '♀') + ' dans ' + d.eta + ' h').join(', ')}</div>`;
       const iss = Z.enclIssues(e); if (iss.length) h += `<div class="warn">${iss.map(i => '⚠️ ' + esc(i)).join('<br>')}</div>`;
       h += `<div class="grid3"><div>Nourriture${bar(e.food)}</div><div>Propreté${bar(e.clean)}</div><div>Clôture${bar(e.fence)}</div></div>`;
       h += '<h3>Aménagements</h3><div class="btns">' + Object.keys(Z.UPGRADES).map(k => { const u = Z.UPGRADES[k]; return e.up[k] ? `<span class="tag ok">${u.icon} ${u.name} ✓</span>` : `<button data-a="upg" data-k="${k}" title="${u.desc}">${u.icon} ${u.name} — ${fmt(u.cost(e))}<small>${u.desc}</small></button>`; }).join('') + '</div>';
@@ -85,7 +87,7 @@
         const s = SP[k], ok = Z.speciesUnlocked(k);
         return `<div class="card ${ok ? '' : 'locked'}"><div class="ctitle"><b>${s.e} ${s.n}</b><b>${fmt(s.price)}</b></div>
           <p class="muted">Espace : ${s.space} cases/animal · Groupe : ${s.grp} min. · Nourriture : ${s.food} €/j · Attrait : ${s.app}</p>
-          ${ok ? `<div class="btns"><button data-a="buy" data-k="${k}" data-s="M">Acheter un mâle ♂</button><button data-a="buy" data-k="${k}" data-s="F">Acheter une femelle ♀</button></div>` : `<p>🔒 Réputation ${String(s.rep).replace('.', ',')} ★ requise</p>`}</div>`;
+          ${ok ? `<div class="btns"><button data-a="buy" data-k="${k}" data-s="M">Acheter un mâle ♂</button><button data-a="buy" data-k="${k}" data-s="F">Acheter une femelle ♀</button></div>` : `<p>🔒 Disponible au niveau ${s.lvl}</p>`}</div>`;
       }).join('');
       if (!n) h += `<div class="btns"><button class="danger" data-a="demoencl">🧨 Démolir l’enclos</button></div>`;
       return { title: esc(e.name), html: h };
@@ -93,6 +95,7 @@
     bld(id) {
       const b = ent(id); if (!b) return null; const d = BL[b.type];
       let h = `<p class="muted">${esc(d.desc)}</p>`;
+      if (b.bt > 0) h += `<div class="warn">🏗️ En construction : ouverture dans ${b.bt} h</div>`;
       if (!b.acc.length && d.cat === 'shop') h += '<div class="warn">⚠️ Aucune allée reliée à l’entrée ne touche ce bâtiment</div>';
       if (d.price) h += `<label>Prix de vente : <b id="rv">${fmt(b.price)}</b> <span class="muted">(conseillé ${fmt(d.price)})</span><input type="range" min="${d.price * .4}" max="${d.price * 2.5}" step="0.5" value="${b.price}" data-r="price"></label>` + row('Ventes aujourd’hui', b.sold) + row('Coût par vente', fmt(d.goods));
       if (d.upkeep) h += row('Entretien', fmt(d.upkeep) + '/jour');
@@ -115,7 +118,7 @@
       const S = Z.S; let h = '';
       for (const k in Z.STAFF) {
         const d = Z.STAFF[k], list = S.staff.filter(s => s.type === k);
-        h += `<div class="card"><div class="ctitle"><b>${d.icon} ${d.name} × ${list.length}</b><button data-a="hire" data-k="${k}">Embaucher</button></div><p class="muted">${d.desc} Salaire : ${fmt(d.salary)}/jour (+200 € de recrutement).</p>`;
+        h += `<div class="card ${Z.staffUnlocked(k) ? '' : 'locked'}"><div class="ctitle"><b>${d.icon} ${d.name} × ${list.length}</b>${Z.staffUnlocked(k) ? `<button data-a="hire" data-k="${k}">Embaucher</button>` : `<span>🔒 Niveau ${d.lvl}</span>`}</div><p class="muted">${d.desc} Salaire : ${fmt(d.salary)}/jour (+200 € de recrutement).</p>`;
         h += list.map(s => `<div class="row"><span><b>${esc(s.name)}</b> — ${esc(Z.staffLabel(s))}</span><span><button class="mini" data-a="goto" data-id="${s.id}">👁️</button><button class="mini danger" data-a="fire" data-id="${s.id}">✕</button></span></div>`).join('') + '</div>';
       }
       const tot = S.staff.reduce((n, s) => n + Z.STAFF[s.type].salary, 0);
@@ -129,7 +132,7 @@
         return `<div class="card click" data-a="goto" data-id="${e.id}"><div class="ctitle"><b>${sp ? sp.e : BIO[e.biome].icon} ${esc(e.name)}</b><span class="muted">${n ? n + ' ' + (n > 1 ? sp.pl : sp.n.toLowerCase()) : 'vide'}</span></div>
           ${n ? `<div class="grid3"><div>Bonheur${bar(Z.avg(e, 'happy'))}</div><div>Santé${bar(Z.avg(e, 'health'))}</div><div>Nourriture${bar(e.food)}</div></div>` : ''}${iss.length ? `<p class="bad">⚠️ ${esc(iss[0])}</p>` : ''}</div>`;
       }).join('');
-      h += '<h3>Espèces à débloquer</h3>' + Object.keys(SP).filter(k => !Z.speciesUnlocked(k)).map(k => `<div class="row"><span>${SP[k].e} ${SP[k].n} <span class="muted">(${BIO[SP[k].b].name})</span></span><b>${String(SP[k].rep).replace('.', ',')} ★</b></div>`).join('');
+      h += '<h3>Espèces à débloquer</h3>' + Object.keys(SP).filter(k => !Z.speciesUnlocked(k)).map(k => `<div class="row"><span>${SP[k].e} ${SP[k].n} <span class="muted">(${BIO[SP[k].b].name})</span></span><b>Niveau ${SP[k].lvl}</b></div>`).join('');
       return { title: '🦁 Animaux', html: h };
     },
     visitors() {
@@ -173,6 +176,28 @@
       }
       return { title: '💶 Finances', html: h };
     },
+    prog() {
+      const S = Z.S, L = S.level, xi = Z.xpInfo();
+      let h = `<div class="lvlhead"><div class="lvlnum">${L}</div><div><b>${Z.LEVEL_TITLES[L]}</b><br><span class="muted">${xi.max ? 'Niveau maximum atteint !' : Math.floor(xi.cur) + ' / ' + xi.need + ' XP — encore ' + Math.ceil(xi.left) + ' XP'}</span>${bar(xi.pct, '#8b5cc9')}</div></div>`;
+      h += '<p class="muted">Gagnez de l’expérience (XP) avec les visiteurs satisfaits, les naissances, les nouvelles espèces présentées, les missions et les objectifs. Chaque niveau rapporte une prime et débloque du contenu.</p>';
+      h += '<h3>Ligne de progression</h3><div class="road">';
+      for (let i = 1; i <= Z.MAX_LEVEL; i++) {
+        const u = Z.unlocksAt(i), st = i < L ? 'done' : i === L ? 'cur' : 'next';
+        h += `<div class="step ${st}"><div class="dot">${i < L ? '✓' : i}</div><div class="sbody"><b>Niveau ${i} · ${Z.LEVEL_TITLES[i]}</b> <span class="muted">${i > 1 ? Z.XP_LEVELS[i] + ' XP · prime ' + fmt(Z.levelBonus(i)) : 'départ'}</span><div class="unl">${u.join(' · ') || '—'}</div></div></div>`;
+      }
+      h += '</div><h3>Terrains</h3><p class="muted">Agrandissez le zoo en achetant les parcelles voisines. Touchez une zone sombre sur la carte pour la voir.</p>';
+      h += Z.PARCELS.map(p => { const own = S.land[p.id], ok = !own && p.lvl <= L && Z.adjacentOwned(p); return `<div class="row"><span>${own ? '✅' : p.lvl > L ? '🔒' : '🗺️'} ${p.n} <span class="muted">(${p.w}×${p.h})</span></span>${own ? '<b class="good">Acquis</b>' : p.lvl > L ? `<b class="muted">Niveau ${p.lvl}</b>` : ok ? `<button class="mini" data-a="land" data-id="${p.id}">Acheter ${fmt(p.price)}</button>` : '<span class="muted">Non contigu</span>'}</div>`; }).join('');
+      return { title: '📈 Progression du zoo', html: h };
+    },
+    land(id) {
+      const S = Z.S, p = Z.PARCELS[id]; if (!p) return null; const own = S.land[id];
+      let h = `<p class="muted">Parcelle de ${p.w}×${p.h} = ${p.w * p.h} cases.</p>` + row('Prix', fmt(p.price)) + row('Niveau requis', p.lvl);
+      if (own) h += '<p class="good">Ce terrain vous appartient.</p>';
+      else if (p.lvl > S.level) h += `<div class="warn">🔒 Atteignez le niveau ${p.lvl} pour l’acheter (actuellement ${S.level}).</div>`;
+      else if (!Z.adjacentOwned(p)) h += '<div class="warn">Achetez d’abord un terrain voisin.</div>';
+      else h += `<div class="btns"><button data-a="land" data-id="${p.id}">🗺️ Acheter pour ${fmt(p.price)}</button></div>`;
+      return { title: '🗺️ ' + p.n, html: h };
+    },
     stats() {
       const S = Z.S, hs = S.fin.history.filter(x => x.money != null), kpi = (l, v) => `<div><small>${l}</small><b>${v}</b></div>`;
       let h = '<div class="kpis">' + kpi('Valeur du zoo', fmt(Z.zooValue())) + kpi('Réputation', Z.rep().toFixed(1).replace('.', ',') + ' ★') + kpi('Animaux', Z.animalCount()) + kpi('Espèces', Z.speciesCount()) + kpi('Record par jour', S.stats.bestDay) + kpi('Pic simultané', S.stats.peak) + kpi('Visiteurs cumulés', S.stats.visitors) + kpi('Naissances', S.stats.births) + kpi('Décès', S.stats.deaths) + kpi('Missions réussies', S.stats.missions) + '</div>';
@@ -202,7 +227,7 @@
         const c = Z.campaign(), med = { or: '🥇', argent: '🥈', bronze: '🥉' };
         h += '<p class="muted">Cinq scénarios à objectifs et durée limitée. Chaque réussite débloque le suivant et ajoute 5 000 € au capital de départ du mode libre. Lancer un scénario remplace la partie en cours.</p>';
         h += Z.SCENARIOS.map((s, i) => { const ok = Z.scnUnlocked(i); return `<div class="card ${ok ? (S.scn === s.id ? 'cur' : '') : 'locked'}"><div class="ctitle"><b>${s.icon} ${i + 1}. ${s.name}</b><b>${med[c[s.id]] || (ok ? '' : '🔒')}</b></div><p class="muted">${s.desc}</p><p>${s.goals.map(g => '• ' + g.t).join('<br>')}</p><p class="muted">Capital : ${fmt(s.money)} · Délai : ${s.days} jours</p>${ok ? `<div class="btns"><button data-a="scn" data-id="${s.id}">${S.scn === s.id ? 'Recommencer' : 'Jouer ce scénario'}</button></div>` : ''}</div>`; }).join('');
-        h += `<div class="card"><div class="ctitle"><b>🌍 Mode libre</b></div><p class="muted">Sans limite de temps. Capital de départ : ${fmt(30000 + Z.campaignBonus())}.</p><div class="btns"><button data-a="scn" data-id="">Nouvelle partie libre</button></div></div>`;
+        h += `<div class="card"><div class="ctitle"><b>🌍 Mode libre</b></div><p class="muted">Sans limite de temps. Capital de départ : ${fmt(20000 + Z.campaignBonus())}.</p><div class="btns"><button data-a="scn" data-id="">Nouvelle partie libre</button></div></div>`;
       }
       return { title: '🎯 Missions & campagne', html: h };
     },
@@ -224,6 +249,7 @@
     hire: d => Z.hire(d.k), fire: d => { Z.fire(+d.id); if (ui.panel === 'staffm') openPanel('staff'); },
     goto: d => { const o = ent(+d.id); if (!o) return; if (o.kind === 'encl') { Z.focus(o.x + o.w / 2, o.y + o.h / 2); openPanel('encl', o.id); } else { Z.focus(o.x, o.y); openPanel('staffm', o.id); } },
     tab: d => { ui.tab[d.p] = d.id; },
+    land: d => { Z.buyParcel(+d.id); },
     rename: () => { const e = ent(ui.parg), n = prompt('Nom de l’enclos :', e.name); if (n && n.trim()) e.name = n.trim().slice(0, 40); },
     resize: d => Z.resizeEncl(ent(ui.parg), d.s, +d.d),
     repay: d => Z.repayLoan(+d.i), borrow: d => Z.takeLoan(d.k), ads: d => Z.buyAds(d.k),
@@ -274,6 +300,7 @@
       <li><b>👷 Personnel</b> — les soigneurs nourrissent et nettoient, les agents de maintenance ramassent les déchets et réparent les clôtures, les vétérinaires soignent.</li>
       <li><b>🏪 Services</b> — restauration, toilettes, bancs, poubelles et boutique gardent les visiteurs satisfaits.</li>
       <li><b>💶 Finances</b> — réglez le prix du billet. La réputation (★) attire le public et débloque de nouvelles espèces.</li>
+      <li><b>📈 Progression</b> — votre zoo gagne de l’expérience et monte de niveau (15 niveaux) : nouveaux habitats, espèces, bâtiments, employés et terrains. Les chantiers durent plusieurs heures et les animaux commandés sont livrés le lendemain.</li>
       <li><b>↔️ Déplacer</b> — glissez un enclos ou un bâtiment pour le déplacer ; agrandissez un enclos depuis sa fiche.</li>
       <li><b>🎯 Missions</b> — acceptez des missions, suivez vos objectifs et lancez la campagne de 5 scénarios. <b>📊 Stats</b> et <b>👁️ Vues</b> vous aident à piloter.</li></ol>
       <p class="muted">Souris : glisser pour se déplacer, molette pour zoomer. Tactile : un doigt pour agir, deux pour se déplacer et zoomer. Le zoo ouvre de 9 h à 19 h ; un an pour les animaux = 10 jours.</p>`, [['C’est parti !']]);
@@ -284,6 +311,7 @@
   function updateTop() {
     const S = Z.S, h = Math.floor(S.minute / 60), m = Math.floor(S.minute % 60), r = Z.rep();
     $('#money').textContent = fmt(S.money); $('#money').className = S.money < 0 ? 'bad' : '';
+    const xi = Z.xpInfo(); $('#lvl').innerHTML = `⭐ Niv. <b>${S.level}</b><span class="xpbar"><i style="width:${xi.pct}%"></i></span>`;
     $('#vis').textContent = S.visitors.length; $('#rep').innerHTML = `<span class="stars">${stars(r)}</span> ${r.toFixed(1).replace('.', ',')}`;
     $('#clock').textContent = `${WX[S.weather]} Jour ${S.day} · ${String(h).padStart(2, '0')}:${String(m - m % 10).padStart(2, '0')}`;
     $('#open').textContent = Z.isOpen() ? 'Ouvert' : 'Fermé'; $('#open').className = 'tag ' + (Z.isOpen() ? 'ok' : 'bad');
@@ -304,6 +332,7 @@
   function drawMini() {
     const m = $('#mini'); if (!m || !m.clientWidth) return;
     const c = m.getContext('2d'), sx = m.width / (W * T), sy = m.height / (H * T); c.drawImage(Z.groundCanvas, 0, 0, m.width, m.height);
+    for (const p of Z.PARCELS) if (!Z.S.land[p.id]) { c.fillStyle = 'rgba(10,20,5,.5)'; c.fillRect(p.x * T * sx, p.y * T * sy, p.w * T * sx, p.h * T * sy); }
     c.fillStyle = '#fff'; for (const v of Z.S.visitors) c.fillRect(v.x * T * sx - 1, v.y * T * sy - 1, 2, 2);
     const r = Z.viewRect(); c.strokeStyle = '#fff'; c.lineWidth = 2; c.strokeRect(r.x * sx, r.y * sy, r.w * sx, r.h * sy);
   }
@@ -312,7 +341,7 @@
     for (const a of S.staff.concat(S.visitors)) { const d = Math.hypot(a.x + a.ox - wx, a.y + a.oy - wy - .1); if (d < bd) { bd = d; best = a; } }
     if (best) return openPanel(best.kind === 'staff' ? 'staffm' : 'vis', best.id);
     const tx = Math.floor(wx), ty = Math.floor(wy), o = Z.inb(tx, ty) ? Z.occ[Z.idx(tx, ty)] : null;
-    if (o) openPanel(o.kind === 'encl' ? 'encl' : 'bld', o.id); else if (ui.sel) closePanel();
+    if (o) openPanel(o.kind === 'encl' ? 'encl' : 'bld', o.id); else if (Z.inb(tx, ty) && !Z.owned(tx, ty)) openPanel('land', Z.parcelAt(tx, ty).id); else if (ui.sel) closePanel();
   }
   function down(ev) {
     cvEl.setPointerCapture(ev.pointerId); pts.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });

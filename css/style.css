@@ -95,3 +95,18 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 select { font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 9px; background: #fff; max-width: 100%; }
 #mini { position: fixed; left: 8px; bottom: 86px; width: 196px; height: 140px; border: 3px solid var(--bg); border-radius: 12px; box-shadow: var(--sh); z-index: 4; cursor: crosshair; touch-action: none; }
 @media (max-width: 900px) { #mini { display: none; } }
+
+.lvl { display: flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 20px; background: #efe4fb; border-color: #d9c4f2; }
+.xpbar { display: inline-block; width: 60px; height: 6px; background: #fff; border-radius: 3px; overflow: hidden; }
+.xpbar i { display: block; height: 100%; background: #8b5cc9; }
+.lvlhead { display: flex; gap: 12px; align-items: center; margin-bottom: 8px; } .lvlhead > div:last-child { flex: 1; }
+.lvlnum { width: 52px; height: 52px; border-radius: 50%; background: #8b5cc9; color: #fff; font-size: 24px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex: none; }
+.road { position: relative; padding-left: 4px; }
+.step { display: flex; gap: 10px; position: relative; padding-bottom: 10px; }
+.step:not(:last-child)::before { content: ''; position: absolute; left: 13px; top: 28px; bottom: 0; width: 3px; background: var(--line); }
+.step.done:not(:last-child)::before { background: #8b5cc9; }
+.dot { width: 28px; height: 28px; border-radius: 50%; flex: none; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; background: #fff; border: 3px solid var(--line); color: var(--mut); z-index: 1; }
+.step.done .dot { background: #8b5cc9; border-color: #8b5cc9; color: #fff; }
+.step.cur .dot { border-color: #8b5cc9; color: #8b5cc9; box-shadow: 0 0 0 4px #efe4fb; }
+.step.next .sbody { opacity: .7; }
+.sbody { font-size: 13px; padding-top: 3px; } .unl { font-size: 12px; margin-top: 2px; }

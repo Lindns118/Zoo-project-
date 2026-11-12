@@ -69,7 +69,7 @@ Z.UPGRADES = {
 Z.FIN = {
   tickets: 'Billetterie', shops: 'Restauration & boutiques', sales: 'Vente d’animaux', rewards: 'Récompenses',
   build: 'Construction', animals: 'Achat d’animaux', salaries: 'Salaires', food: 'Nourriture des animaux',
-  goods: 'Marchandises', upkeep: 'Entretien', vet: 'Soins vétérinaires', interest: 'Intérêts d’emprunt', misc: 'Divers',
+  goods: 'Marchandises', upkeep: 'Entretien', vet: 'Soins vétérinaires', interest: 'Intérêts d’emprunt', tax: 'Impôts (20 % du bénéfice)', misc: 'Divers',
 };
 
 Z.GOALS = [

@@ -10,6 +10,7 @@
     S.ads = S.ads || null; S.missions = S.missions || []; S.nextMission = S.nextMission || 3; S.redDays = S.redDays || 0;
     S.stats.bestDay = S.stats.bestDay || 0; S.stats.peak = S.stats.peak || 0; S.stats.missions = S.stats.missions || 0;
     S.rules = S.rules || {}; S.scn = S.scn || null;
+    Z.progressMigrate(S);
   };
   Z.bldUnlocked = k => BL[k].need == null || !!Z.S.scn || Z.S.goal > BL[k].need;
 
@@ -50,6 +51,7 @@
     const S = Z.S, c = { salaries: 0, upkeep: 0, food: 0, interest: 0, repay: 0 };
     for (const s of S.staff) c.salaries += Z.STAFF[s.type].salary;
     for (const b of S.buildings) c.upkeep += BL[b.type].upkeep || 0;
+    for (const e of S.enclosures) c.upkeep += e.w * e.h * .8;
     for (const e of S.enclosures) for (const a of e.animals) c.food += SP[a.sp].food * (a.age < 1 ? .5 : 1);
     for (const l of S.loans) { c.interest += l.left * l.rate; c.repay += Math.min(l.pay, l.left); }
     c.total = c.salaries + c.upkeep + c.food + c.interest; return c;
@@ -83,7 +85,7 @@
   function rectFree(o, x, y, w, h) {
     for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) {
       if (!Z.inb(i, j)) return false; const t = idx(i, j), oc = Z.occ[t];
-      if (Z.S.ground[t] !== 0 || (oc && oc !== o)) return false;
+      if (Z.S.ground[t] !== 0 || (oc && oc !== o) || !Z.owned(i, j)) return false;
     }
     return true;
   }
@@ -148,8 +150,8 @@
       prog: S => { const a = allAnimals(); return 'Actuellement ' + Math.round(a.reduce((s, x) => s + x.happy, 0) / Math.max(1, a.length)) + ' %'; },
     },
     gift: {
-      can: S => Z.rep() >= 3 && Object.keys(SP).some(k => !Z.speciesUnlocked(k)),
-      gen: S => { const k = Object.keys(SP).filter(k => !Z.speciesUnlocked(k)).sort((a, b) => SP[a].rep - SP[b].rep)[0], s = SP[k]; return { t: '🎁 Don d’un zoo partenaire : ' + s.e + ' ' + s.n, d: `Préparez un enclos « ${Z.BIOMES[s.b].name} » vide d’au moins ${s.space * Math.max(2, s.grp)} cases, relié à l’entrée. Vous recevrez un couple et l’espèce sera débloquée.`, sp: k, days: 12, money: 0, giftSp: k }; },
+      can: S => S.level >= 3 && Object.keys(SP).some(k => !Z.speciesUnlocked(k)),
+      gen: S => { const k = Object.keys(SP).filter(k => !Z.speciesUnlocked(k)).sort((a, b) => SP[a].lvl - SP[b].lvl)[0], s = SP[k]; return { t: '🎁 Don d’un zoo partenaire : ' + s.e + ' ' + s.n, d: `Préparez un enclos « ${Z.BIOMES[s.b].name} » vide d’au moins ${s.space * Math.max(2, s.grp)} cases, relié à l’entrée. Vous recevrez un couple et l’espèce sera débloquée.`, sp: k, days: 12, money: 0, giftSp: k }; },
       ok: (S, m) => !!giftEncl(m),
     },
     profit: {
@@ -158,7 +160,7 @@
       ok: (S, m) => { const h = S.fin.history[S.fin.history.length - 1]; return h && h.d >= m.from && h.inc - h.exp >= m.n; },
     },
   };
-  function giftEncl(m) { const s = SP[m.sp]; return Z.S.enclosures.find(e => e.biome === s.b && !e.animals.length && e.vp.length && e.w * e.h >= s.space * Math.max(2, s.grp)); }
+  function giftEncl(m) { const s = SP[m.sp]; return Z.S.enclosures.find(e => e.biome === s.b && !e.animals.length && !e.bt && !(e.pending && e.pending.length) && e.vp.length && e.w * e.h >= s.space * Math.max(2, s.grp)); }
   Z.missionProg = m => MT[m.k].prog ? MT[m.k].prog(Z.S, m) : '';
   function genMission() {
     const S = Z.S, used = new Set(S.missions.map(m => m.k)), ks = Object.keys(MT).filter(k => !used.has(k) && k !== S.lastMission && (!MT[k].can || MT[k].can(S)));
@@ -169,13 +171,13 @@
   Z.acceptMission = function (id) { const S = Z.S, m = S.missions.find(m => m.id === id); if (!m || m.st !== 'offer') return; m.st = 'active'; m.end = S.day + m.days; m.from = S.day; };
   Z.declineMission = function (id) { const S = Z.S; S.missions = S.missions.filter(m => m.id !== id); };
   function rewardMission(m) {
-    const S = Z.S; S.missions.splice(S.missions.indexOf(m), 1); S.stats.missions++;
+    const S = Z.S; S.missions.splice(S.missions.indexOf(m), 1); S.stats.missions++; Z.xp(m.xp || 120);
     let txt = '';
     if (m.money) { Z.earn('rewards', m.money); txt += ' +' + fmt(m.money); }
     if (m.rep) { S.ratings.push(5, 5, 5, 5); txt += ' · réputation en hausse'; }
     if (m.giftSp) {
       const e = giftEncl(m), k = m.giftSp; S.unlocked[k] = 1; S.money += SP[k].price * 2;
-      Z.buyAnimal(e, k, 'M'); Z.buyAnimal(e, k, 'F'); S.fin.today.animals = (S.fin.today.animals || 0) + SP[k].price * 2;
+      Z.buyAnimal(e, k, 'M', true); Z.buyAnimal(e, k, 'F', true); S.fin.today.animals = (S.fin.today.animals || 0) + SP[k].price * 2;
       txt += ' · un couple de ' + SP[k].pl + ' rejoint votre zoo';
     }
     Z.notify('🏅 Mission réussie : ' + m.t + txt, 'good');
@@ -197,27 +199,27 @@
   const g = (t, c, p) => ({ t, c, p });
   Z.SCENARIOS = [
     {
-      id: 's1', name: 'Premiers pas', icon: '🌱', money: 30000, days: 30,
+      id: 's1', name: 'Premiers pas', icon: '🌱', money: 25000, days: 30, lvl: 2,
       desc: 'La mairie vous confie un terrain vide. Prouvez qu’un zoo peut y vivre.',
       goals: [g('Présenter 3 espèces', S => Z.speciesCount() >= 3, S => Z.speciesCount() + ' / 3'), g('120 visiteurs en une journée', S => best(S) >= 120, S => best(S) + ' / 120'), g('Réputation de 3,3 ★', S => Z.rep() >= 3.3, S => Z.rep().toFixed(1))],
     },
     {
-      id: 's2', name: 'Safari doré', icon: '🦒', money: 40000, days: 45, rules: { biomes: ['savane'] },
+      id: 's2', name: 'Safari doré', icon: '🦒', money: 40000, days: 45, lvl: 5, rules: { biomes: ['savane'] },
       desc: 'Un mécène finance un parc 100 % savane. Aucun autre habitat n’est autorisé.',
       goals: [g('Présenter 4 espèces de savane', S => Z.speciesCount() >= 4, S => Z.speciesCount() + ' / 4'), g('250 visiteurs en une journée', S => best(S) >= 250, S => best(S) + ' / 250'), g('Réputation de 3,8 ★', S => Z.rep() >= 3.8, S => Z.rep().toFixed(1))],
     },
     {
-      id: 's3', name: 'Zoo à l’abandon', icon: '🏚️', money: 12000, days: 50, setup: 'ruin',
+      id: 's3', name: 'Zoo à l’abandon', icon: '🏚️', money: 12000, days: 50, lvl: 6, setup: 'ruin',
       desc: 'Vous reprenez un zoo délabré, endetté et à la réputation désastreuse. Redressez-le.',
       goals: [g('Réputation de 3,5 ★', S => Z.rep() >= 3.5, S => Z.rep().toFixed(1)), g('Rembourser toutes les dettes', S => !S.loans.length, S => fmt(Z.debt()) + ' restants'), g('20 000 € de trésorerie', S => S.money >= 20000, S => fmt(S.money))],
     },
     {
-      id: 's4', name: 'La nurserie', icon: '🍼', money: 50000, days: 60,
+      id: 's4', name: 'La nurserie', icon: '🍼', money: 50000, days: 60, lvl: 6,
       desc: 'Un programme européen de reproduction compte sur vous.',
       goals: [g('8 naissances', S => S.stats.births >= 8, S => S.stats.births + ' / 8'), g('Présenter 6 espèces', S => Z.speciesCount() >= 6, S => Z.speciesCount() + ' / 6'), g('Bonheur animal moyen de 80 %', S => { const a = allAnimals(); return a.length >= 12 && a.reduce((s, x) => s + x.happy, 0) / a.length >= 80; }, S => { const a = allAnimals(); return Math.round(a.reduce((s, x) => s + x.happy, 0) / Math.max(1, a.length)) + ' % (12 animaux min.)'; })],
     },
     {
-      id: 's5', name: 'Le grand zoo', icon: '🏆', money: 60000, days: 120,
+      id: 's5', name: 'Le grand zoo', icon: '🏆', money: 40000, days: 120, lvl: 1,
       desc: 'Bâtissez un parc zoologique de renommée nationale.',
       goals: [g('Présenter 12 espèces', S => Z.speciesCount() >= 12, S => Z.speciesCount() + ' / 12'), g('400 visiteurs en une journée', S => best(S) >= 400, S => best(S) + ' / 400'), g('Réputation de 4,2 ★', S => Z.rep() >= 4.2, S => Z.rep().toFixed(1)), g('Valeur du zoo de 300 000 €', S => Z.zooValue() >= 300000, S => fmt(Z.zooValue()))],
     },
@@ -229,12 +231,12 @@
   Z.scnUnlocked = i => i === 0 || !!Z.campaign()[Z.SCENARIOS[i - 1].id];
   Z.applyScenario = function (id) {
     const S = Z.S, sc = Z.SCENARIOS.find(s => s.id === id); if (!sc) return;
-    S.scn = id; S.rules = sc.rules || {}; S.money = 1e6;
+    S.scn = id; S.rules = sc.rules || {}; S.money = 1e6; Z.progressScenario(S, sc.lvl || 1);
     if (sc.setup === 'ruin') {
       for (let y = 26; y < H - 6; y++) Z.buildPath(28, y); for (let x = 16; x < 42; x++) Z.buildPath(x, 26);
-      const mk = (x, y, w, h, b, sp, n) => { const e = Z.buildEncl(x, y, w, h, b); for (let i = 0; i < n; i++) Z.buyAnimal(e, sp, i % 2 ? 'M' : 'F'); e.clean = 15; e.fence = 32; e.food = 45; for (const a of e.animals) { a.happy = 35; a.health = 70; a.hunger = 50; } e.animals[0].sick = 1; };
+      const mk = (x, y, w, h, b, sp, n) => { const e = Z.buildEncl(x, y, w, h, b); for (let i = 0; i < n; i++) Z.buyAnimal(e, sp, i % 2 ? 'M' : 'F', true); e.bt = 0; e.clean = 15; e.fence = 32; e.food = 45; for (const a of e.animals) { a.happy = 35; a.health = 70; a.hunger = 50; } e.animals[0].sick = 1; };
       mk(17, 20, 6, 6, 'savane', 'zebre', 5); mk(25, 21, 5, 5, 'foret', 'singe', 6); mk(32, 20, 7, 6, 'aquatique', 'flamant', 5);
-      Z.place('food', 30, 27); Z.place('toilet', 24, 27);
+      Z.place('food', 30, 27); Z.place('toilet', 24, 27); for (const b of S.buildings) b.bt = 0;
       for (let i = 0; i < W * H; i++) if (S.ground[i] === 1 && Math.random() < .5) S.litter[i] = 2;
       for (let i = 0; i < 20; i++) S.ratings.push(1.5);
       S.loans.push({ n: 'Dette héritée', left: 30000, pay: 30000 / 60, rate: .004 });

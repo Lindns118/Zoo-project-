@@ -1,7 +1,7 @@
 // Zoo Project — rendu
 (function () {
   const { W, H, EX, EY, TILE: T } = Z;
-  const SP = Z.SPECIES, BL = Z.BUILDINGS, idx = Z.idx;
+  const SP = Z.SPECIES, BL = Z.BUILDINGS, idx = Z.idx, fmt = n => Z.fmt(n);
   const cam = Z.cam = { x: (EX + .5) * T, y: (H - 9) * T, z: 1 };
   let cv, ctx, dpr = 1, cw = 0, ch = 0;
   const SS = 1.5; // résolution de la couche statique
@@ -112,6 +112,24 @@
         let ic = ''; if (e.food <= 0) ic += '🍽️'; if (e.clean < 30) ic += '💩'; if (e.fence < 30) ic += '🔧'; if (!e.vp.length) ic += '🚫';
         if (ic) { ctx.fillStyle = 'rgba(255,255,255,.92)'; rr(ctx, x + w / 2 - 10 - ic.length * 3.2, y - 22, 20 + ic.length * 6.4, 20, 10); ctx.fill(); emoji(ctx, ic, x + w / 2, y - 11, 12); }
       } else if (!e.vp.length) emoji(ctx, '🚫', x + w / 2, y + h / 2, 18);
+    }
+    // chantiers
+    for (const o of S.enclosures.concat(S.buildings)) {
+      if (!(o.bt > 0)) continue; const [w, h] = Z.sizeOf(o), x = o.x * T, y = o.y * T, tot = o.kind === 'encl' ? Z.enclBuildHours(o.w, o.h) : Z.bldBuildHours(o.type);
+      ctx.fillStyle = 'rgba(120,90,40,.55)'; ctx.fillRect(x, y, w * T, h * T);
+      ctx.strokeStyle = 'rgba(240,200,40,.8)'; ctx.lineWidth = 4; ctx.setLineDash([10, 8]); ctx.strokeRect(x + 2, y + 2, w * T - 4, h * T - 4); ctx.setLineDash([]);
+      emoji(ctx, '🏗️', x + w * T / 2, y + h * T / 2 - 6, Math.min(28, w * T * .6));
+      const bw = Math.min(w * T - 8, 60); ctx.fillStyle = '#333'; ctx.fillRect(x + w * T / 2 - bw / 2, y + h * T / 2 + 12, bw, 5); ctx.fillStyle = '#f0c030'; ctx.fillRect(x + w * T / 2 - bw / 2, y + h * T / 2 + 12, bw * (1 - o.bt / tot), 5);
+    }
+    // terrains non acquis
+    for (const p of Z.PARCELS) {
+      if (S.land[p.id]) continue; const x = p.x * T, y = p.y * T, w = p.w * T, h = p.h * T, ok = p.lvl <= S.level && Z.adjacentOwned(p);
+      ctx.fillStyle = ok ? 'rgba(20,30,10,.35)' : 'rgba(10,15,5,.55)'; ctx.fillRect(x, y, w, h);
+      ctx.strokeStyle = 'rgba(255,255,255,.25)'; ctx.lineWidth = 2; ctx.setLineDash([6, 6]); ctx.strokeRect(x + 1, y + 1, w - 2, h - 2); ctx.setLineDash([]);
+      const cx = x + w / 2, cy = y + h / 2, label = ok ? '🗺️ À vendre · ' + fmt(p.price) : '🔒 Niveau ' + p.lvl;
+      ctx.font = 'bold 14px sans-serif'; const tw = ctx.measureText(label).width + 20;
+      ctx.fillStyle = ok ? 'rgba(47,143,78,.92)' : 'rgba(30,30,30,.7)'; rr(ctx, cx - tw / 2, cy - 14, tw, 28, 14); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(label, cx, cy + 1);
     }
     // vues en surimpression
     if (ui.view) {
