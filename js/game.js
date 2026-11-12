@@ -163,7 +163,7 @@
   Z.happyTarget = function (e, a) {
     const sp = SP[a.sp], n = e.animals.length; let h = 76 + Z.climateBonus(e.biome);
     const ratio = e.w * e.h / (n * sp.space);
-    if (ratio < 1) h -= (1 - ratio) * 70; else if (ratio >= 1.5) h += 4;
+    if (ratio < 1) h -= (1 - ratio) * 70 + (e.crowd || 0) * 6; else if (ratio < 1.25) h -= (1.25 - ratio) * 24; else if (ratio >= 1.5) h += 4;
     if (n < sp.grp) h -= 18;
     if (a.hunger < 40) h -= (40 - a.hunger) * .9;
     if (e.clean < 50) h -= (50 - e.clean) * .6;
@@ -290,7 +290,7 @@
       e.fence = Math.max(0, e.fence - sp.space * .012 * Z.rmod('fence'));
       const anySick = e.animals.some(a => a.sick);
       for (const a of e.animals.slice()) {
-        a.hunger = e.food > 0 ? Math.min(100, a.hunger + 12) : Math.max(0, a.hunger - 3.5);
+        a.hunger = e.food > 0 && !(e.crowd >= 2) ? Math.min(100, a.hunger + 12) : Math.max(e.crowd >= 2 && e.food > 0 ? 8 : 0, a.hunger - (e.crowd >= 2 ? 2.2 : 3.5));
         a.happy += (Z.happyTarget(e, a) - a.happy) * .15;
         if (a.hunger <= 0) a.health -= 2; else if (a.sick) a.health -= 2.5; else if (a.happy > 50) a.health = Math.min(100, a.health + 1.5);
         if (!a.sick) {
@@ -320,7 +320,7 @@
         }
       }
       const ok = a => a.age >= sp.mat && a.age < sp.life * .85 && a.happy > 65 && a.health > 70 && !a.sick;
-      if (e.w * e.h >= (e.animals.length + 1) * sp.space && e.animals.some(a => a.sex === 'M' && ok(a))) {
+      if (Z.occupancy(e, 1) <= Z.BREED_MAX + 1e-9 && e.animals.some(a => a.sex === 'M' && ok(a))) {
         for (const a of e.animals) if (a.sex === 'F' && !a.preg && ok(a) && Math.random() < sp.fert * Z.rmod('fert')) { a.preg = sp.gest; break; }
       }
     }

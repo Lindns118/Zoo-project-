@@ -37,6 +37,7 @@
     else if (k === 'warn') tone(440, .15, 'triangle', .1);
     else if (k === 'cash') { tone(1300, .07, 'sine', .08); tone(1750, .12, 'sine', .08, 0, .06); }
     else if (k === 'level') [523, 659, 784, 1047].forEach((f, i) => tone(f, .25, 'triangle', .13, 0, i * .12));
+    else if (k === 'fight') { for (let i = 0; i < 5; i++) { tone(95 + Math.random() * 50, .28, 'sawtooth', .16, 55, i * .26); tone(700 + Math.random() * 500, .07, 'square', .07, 200, i * .26 + .12); } tone(300, .5, 'sawtooth', .1, 90, 1.4); }
     else if (k === 'bird') { const f = 2200 + Math.random() * 1400; tone(f, .09, 'sine', .035, f * 1.3); tone(f * 1.1, .08, 'sine', .03, f * .9, .13); }
   };
   const SCALE = [262, 294, 330, 392, 440, 523, 587, 659]; let step = 0, acc = 0, birdT = 3;
