@@ -20,7 +20,7 @@
 
   // ---------- Barre d'outils ----------
   const TOOLS = [
-    ['select', '🖐️', 'Explorer'], ['path', '🛣️', 'Allées'], ['encl', '🚧', 'Enclos'], ['shop', '🏪', 'Services'], ['ride', '🎡', 'Attractions'], ['decor', '🌳', 'Décor'], ['move', '↔️', 'Déplacer'], ['demo', '🧨', 'Démolir'],
+    ['select', '🖐️', 'Explorer'], ['path', '🛣️', 'Allées'], ['encl', '🚧', 'Enclos'], ['shop', '🏪', 'Services'], ['ride', '🎡', 'Attractions'], ['decor', '🌳', 'Décor'], ['terra', '⛏️', 'Terrain'], ['move', '↔️', 'Déplacer'], ['demo', '🧨', 'Démolir'],
     ['|'], ['p:staff', '👷', 'Personnel'], ['p:animals', '🦁', 'Animaux'], ['p:visitors', '🧑‍🤝‍🧑', 'Visiteurs'], ['p:fin', '💶', 'Finances'], ['p:research', '🔬', 'Recherche'], ['p:prog', '📈', 'Progression'], ['p:stats', '📊', 'Stats'], ['p:goals', '🎯', 'Missions'], ['p:world', '🌍', 'Monde'], ['view', '👁️', 'Vues'], ['p:menu', '⚙️', 'Menu'],
   ];
   function renderTools() {
@@ -29,6 +29,7 @@
     let sub = '';
     if (ui.tool === 'encl') sub = Object.keys(BIO).filter(k => !Z.S.rules.biomes || Z.S.rules.biomes.includes(k)).map(k => !Z.biomeUnlocked(k) ? `<button class="chip locked" disabled>🔒 ${BIO[k].name}<small>${Z.lockLabel(BIO[k])}</small></button>` : `<button class="chip ${ui.arg === k ? 'on' : ''}" data-a="arg" data-id="${k}">${BIO[k].icon} ${BIO[k].name}<small>${Math.round(BIO[k].cost * Z.biomeMult(k))} €/case</small></button>`).join('');
     if (ui.tool === 'shop' || ui.tool === 'decor' || ui.tool === 'ride') sub = Object.keys(BL).filter(k => BL[k].cat === ui.tool).map(k => !Z.bldUnlocked(k) ? `<button class="chip locked" disabled>🔒 ${BL[k].name}<small>${Z.lockLabel(BL[k])}</small></button>` : `<button class="chip ${ui.arg === k ? 'on' : ''}" data-a="arg" data-id="${k}" title="${esc(BL[k].desc)}">${BL[k].icon} ${BL[k].name}<small>${fmt(BL[k].cost)}</small></button>`).join('');
+    if (ui.tool === 'terra') sub = Object.keys(Z.TERRA).map(k => `<button class="chip ${ui.arg === k ? 'on' : ''}" data-a="arg" data-id="${k}">${Z.TERRA[k].icon} ${Z.TERRA[k].name}<small>${fmt(Z.TERRA[k].cost)}/case</small></button>`).join('');
     $('#sub').innerHTML = sub; $('#sub').style.display = sub ? 'flex' : 'none';
     const hints = {
       select: '', path: 'Glissez pour tracer une allée (12 €/case), puis validez. Appui long : déplacer la carte.',
@@ -36,6 +37,7 @@
       shop: BL[ui.arg] ? BL[ui.arg].desc + ' Touchez pour ajouter au plan, puis validez.' : '', decor: BL[ui.arg] ? BL[ui.arg].desc : '',
       move: 'Glissez un bâtiment ou un enclos (avec ses animaux) vers son nouvel emplacement. Coût : 10 % de son prix.',
       ride: BL[ui.arg] ? BL[ui.arg].desc + ' Nécessite un opérateur et une allée.' : 'Aucune attraction disponible : lancez un projet dans 🔬 Recherche.',
+      terra: 'Touchez ou glissez sur votre terrain. L’eau et les arbres embellissent le zoo ; une allée posée sur l’eau devient un pont (60 €).',
       demo: 'Touchez une allée, un bâtiment, un enclos vide (30 % remboursés) ou un arbre à défricher (120 €).',
     };
     setHint(hints[ui.tool] || (ui.view ? 'Vue : ' + VIEWS[ui.view] + ' — touchez 👁️ pour changer' : ''));
@@ -45,7 +47,7 @@
     if (id === 'view') { const o = [null, 'happy', 'clean', 'crowd']; ui.view = o[(o.indexOf(ui.view) + 1) % 4]; renderTools(); return; }
     if (id.startsWith('p:')) { const p = id.slice(2); if (ui.panel === p) closePanel(); else openPanel(p); return; }
     ui.tool = id; ui.ghost = null;
-    ui.arg = id === 'encl' ? 'savane' : id === 'shop' ? 'food' : id === 'decor' ? 'tree' : id === 'ride' ? (Object.keys(BL).find(k => BL[k].cat === 'ride' && Z.bldUnlocked(k)) || null) : null;
+    ui.arg = id === 'encl' ? 'savane' : id === 'shop' ? 'food' : id === 'decor' ? 'tree' : id === 'terra' ? 'dig' : id === 'ride' ? (Object.keys(BL).find(k => BL[k].cat === 'ride' && Z.bldUnlocked(k)) || null) : null;
     renderTools();
   }
 
@@ -291,6 +293,7 @@
     hire: d => Z.hire(d.k), fire: d => { Z.fire(+d.id); if (ui.panel === 'staffm') openPanel('staff'); },
     goto: d => { const o = ent(+d.id); if (!o) return; if (o.kind === 'encl') { Z.focus(o.x + o.w / 2, o.y + o.h / 2); openPanel('encl', o.id); } else { Z.focus(o.x, o.y); openPanel('staffm', o.id); } },
     tab: d => { ui.tab[d.p] = d.id; },
+    rot: d => Z.rotate(+d.v),
     map: d => { const m = Z.WORLD.find(x => x.id === d.id); if (d.fresh) modal('Recommencer ' + m.name + ' ?', '<p>La sauvegarde de cette carte sera effacée.</p>', [['Annuler'], ['Recommencer', () => Z.playMap(d.id, true), 'danger']]); else Z.playMap(d.id, false); },
     rstart: d => Z.startResearch(d.k), setprice: d => { Z.S.ticket = +d.v; },
     land: d => { Z.buyParcel(+d.id); },
@@ -388,7 +391,8 @@
     el.style.display = 'flex';
   }
   function planAdd(it) { plan.push(it); renderPlan(); }
-  function planPath(x, y) { if (planFree(x, y, 1, 1)) planAdd({ k: 'path', x, y, w: 1, h: 1, cost: 12 }); }
+  const pathFree = (x, y) => Z.pathOk(x, y) && !plan.some(p => p.x <= x && x < p.x + p.w && p.y <= y && y < p.y + p.h);
+  function planPath(x, y) { if (pathFree(x, y)) planAdd({ k: 'path', x, y, w: 1, h: 1, cost: Z.pathCost(x, y) }); }
   function planCommit() {
     const c = planCost(); if (Z.S.money < c) return Z.notify('Fonds insuffisants pour ce plan (' + fmt(c) + ')', 'bad');
     let last = null;
@@ -398,7 +402,8 @@
   Object.assign(ACT, { planok: planCommit, planundo: () => { plan.pop(); renderPlan(); }, plancancel: () => { plan.length = 0; renderPlan(); } });
   function ghostFor(tx, ty) {
     if (isBld()) { if (!ui.arg) return null; const s = BL[ui.arg].size; return { x: tx, y: ty, w: s, h: s, type: ui.arg, ok: planFree(tx, ty, s, s, ui.arg) }; }
-    if (ui.tool === 'path') return { x: tx, y: ty, w: 1, h: 1, ok: planFree(tx, ty, 1, 1) };
+    if (ui.tool === 'path') return { x: tx, y: ty, w: 1, h: 1, ok: pathFree(tx, ty) };
+    if (ui.tool === 'terra') return { x: tx, y: ty, w: 1, h: 1, ok: Z.terraOk(ui.arg, tx, ty) };
     if (ui.tool === 'demo') return { x: tx, y: ty, w: 1, h: 1, ok: false };
     return null;
   }
@@ -448,11 +453,12 @@
     }
     const t = Z.toTile(ev.clientX, ev.clientY), d = drag;
     if (!d || d.id !== ev.pointerId) { if (ev.pointerType === 'mouse' && ui.tool !== 'select' && ui.tool !== 'encl' && ui.tool !== 'move') ui.ghost = ghostFor(t.x, t.y); return; }
-    if (!d.moved && Math.hypot(ev.clientX - d.sx, ev.clientY - d.sy) > 6) { d.moved = true; if (d.mode === 'build' && ui.tool === 'path') planPath(d.start.x, d.start.y); }
+    if (!d.moved && Math.hypot(ev.clientX - d.sx, ev.clientY - d.sy) > 6) { d.moved = true; if (d.mode === 'build' && ui.tool === 'path') planPath(d.start.x, d.start.y); if (d.mode === 'build' && ui.tool === 'terra') Z.terra(ui.arg, d.start.x, d.start.y); }
     if (d.mode === 'pan') { Z.cam.x -= (ev.clientX - d.lx) / Z.cam.z; Z.cam.y -= (ev.clientY - d.ly) / Z.cam.z; Z.clampCam(); }
     else if (d.mode === 'obj') ui.ghost = moveGhost(d, t);
     else if (d.moved) {
       if (ui.tool === 'path') { pathTo(d, t); ui.ghost = null; }
+      else if (ui.tool === 'terra') { if (t.x !== d.last.x || t.y !== d.last.y) { Z.terra(ui.arg, t.x, t.y); d.last = t; } ui.ghost = ghostFor(t.x, t.y); }
       else if (ui.tool === 'encl') { ui.ghost = enclRect(d.start, t); setHint(`${ui.ghost.w}×${ui.ghost.h} = ${ui.ghost.w * ui.ghost.h} cases — ${fmt(Z.enclCost(ui.ghost.w, ui.ghost.h, ui.arg))}`); }
       else ui.ghost = ghostFor(t.x, t.y);
     }
@@ -465,6 +471,7 @@
     if (d.mode === 'pan') { if (!d.moved && ev.button === 0 && ui.tool === 'select') clickSelect(ev.clientX, ev.clientY); else if (ui.tool !== 'select') renderTools(); }
     else if (d.mode === 'obj') { const gh = ui.ghost; ui.ghost = null; if (gh && d.moved) Z.moveObj(d.mo, gh.x, gh.y); else if (ui.tool === 'select') clickSelect(ev.clientX, ev.clientY); renderTools(); }
     else if (ui.tool === 'path') { if (!d.moved) planPath(t.x, t.y); if (touch) ui.ghost = null; }
+    else if (ui.tool === 'terra') { if (!d.moved) Z.terra(ui.arg, t.x, t.y); if (touch) ui.ghost = null; }
     else if (ui.tool === 'encl') {
       const r = ui.ghost; ui.ghost = null;
       if (r && r.ok) planAdd({ k: 'encl', x: r.x, y: r.y, w: r.w, h: r.h, biome: ui.arg, cost: Z.enclCost(r.w, r.h, ui.arg) });
@@ -497,6 +504,7 @@
     window.addEventListener('keydown', ev => {
       if (ev.target.tagName === 'INPUT') return; keys[ev.key.toLowerCase()] = true;
       if (ev.key === 'Escape') { if (plan.length) { plan.length = 0; renderPlan(); } else if (ui.tool !== 'select') setTool('select'); else closePanel(); }
+      if (ev.key.toLowerCase() === 'r') Z.rotate(1);
       if (ev.key === ' ') { ev.preventDefault(); Z.S.speed = Z.S.speed ? 0 : 1; updateTop(); }
       if (['1', '2', '3'].includes(ev.key)) { Z.S.speed = [1, 2, 4][+ev.key - 1]; updateTop(); }
     });

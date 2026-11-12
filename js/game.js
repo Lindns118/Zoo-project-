@@ -72,7 +72,7 @@
       const d = BL[b.type]; b.acc = S.ground[idx(b.x, b.y)] === 1 ? (reach[idx(b.x, b.y)] ? [idx(b.x, b.y)] : []) : adjacent(b.x, b.y, d.size, d.size); beauty += d.beauty || 0;
       if (b.type === 'bin') for (let y = b.y - 5; y <= b.y + 5; y++) for (let x = b.x - 5; x <= b.x + 5; x++) if (inb(x, y)) cover[idx(x, y)] = 1;
     }
-    for (let i = 0; i < W * H; i++) { if (S.ground[i] === 1) paths++; else S.litter[i] = 0; }
+    for (let i = 0; i < W * H; i++) { if (S.ground[i] === 1) paths++; else { S.litter[i] = 0; if (S.ground[i] > 1 && Z.owned(i % W, (i / W) | 0)) beauty += .1; } }
     Z.pathCount = paths; Z.beauty = clamp(beauty / Math.max(4, paths / 10), 0, 1);
     if (removed) {
       for (const a of S.visitors.concat(S.staff)) {
@@ -189,10 +189,17 @@
   // ---------- Construction ----------
   const freeTile = (x, y) => inb(x, y) && Z.S.ground[idx(x, y)] === 0 && !Z.occ[idx(x, y)] && Z.owned(x, y);
   Z.freeRect = function (x, y, w, h) { for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) if (!freeTile(i, j)) return false; return true; };
+  Z.pathOk = (x, y) => freeTile(x, y) || (inb(x, y) && Z.S.ground[idx(x, y)] === 2 && Z.owned(x, y) && !Z.occ[idx(x, y)]);
+  Z.pathCost = (x, y) => (inb(x, y) && Z.S.ground[idx(x, y)] === 2 ? 60 : 12);
   Z.buildPath = function (x, y) {
-    if (!freeTile(x, y) || !Z.pay('build', 12)) return false;
-    Z.S.ground[idx(x, y)] = 1; Z.rebuild(false); return true;
+    const S = Z.S; if (!Z.pathOk(x, y)) return false; const t = idx(x, y), water = S.ground[t] === 2;
+    if (!Z.pay('build', water ? 60 : 12)) return false;
+    S.ground[t] = 1; if (water) (S.br = S.br || {})[t] = 1; Z.rebuild(false); return true;
   };
+  // Terrassement : creuser un bassin, remblayer l'eau, planter un arbre
+  Z.TERRA = { dig: { name: 'Creuser un bassin', icon: '💧', cost: 150, from: 0, to: 2 }, fill: { name: 'Remblayer', icon: '🟫', cost: 250, from: 2, to: 0 }, plant: { name: 'Planter un arbre', icon: '🌳', cost: 80, from: 0, to: 3 } };
+  Z.terraOk = (k, x, y) => inb(x, y) && Z.owned(x, y) && !Z.occ[idx(x, y)] && Z.S.ground[idx(x, y)] === Z.TERRA[k].from && !(Math.abs(x - EX) <= 0 && y >= H - 6);
+  Z.terra = function (k, x, y) { if (!Z.terraOk(k, x, y) || !Z.pay('build', Z.TERRA[k].cost)) return false; Z.S.ground[idx(x, y)] = Z.TERRA[k].to; Z.rebuild(true); return true; };
   Z.enclCost = (w, h, biome) => w * h * Math.round(Z.BIOMES[biome].cost * Z.biomeMult(biome)) + 2 * (w + h) * 25;
   Z.buildEncl = function (x, y, w, h, biome) {
     if (w < 2 || h < 2 || w * h < 6) { Z.notify('Enclos trop petit (6 cases minimum)', 'bad'); return null; }
@@ -218,7 +225,7 @@
       if (o.animals.length || (o.pending && o.pending.length)) { Z.notify('Vendez ou déplacez d’abord les animaux de cet enclos', 'bad'); return false; }
       S.enclosures.splice(S.enclosures.indexOf(o), 1); S.money += Z.enclCost(o.w, o.h, o.biome) * .3;
     } else if (o) { S.buildings.splice(S.buildings.indexOf(o), 1); S.money += BL[o.type].cost * .3; }
-    else if (S.ground[t] === 1) { if (x === EX && y >= H - 2) return false; S.ground[t] = 0; }
+    else if (S.ground[t] === 1) { if (x === EX && y >= H - 2) return false; S.ground[t] = S.br && S.br[t] ? 2 : 0; if (S.br) delete S.br[t]; }
     else if (S.ground[t] === 3) { if (!Z.owned(x, y)) { Z.notify('Ce terrain ne vous appartient pas', 'bad'); return false; } if (!Z.pay('build', 120)) return false; S.ground[t] = 0; }
     else return false;
     Z.rebuild(true); return true;

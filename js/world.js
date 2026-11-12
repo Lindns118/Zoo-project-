@@ -15,8 +15,8 @@
     { id: 'canada', name: 'Rocheuses', country: 'Canada', icon: '🏔️', req: 6, money: 28000, demand: .9, wealth: 1.2, weather: [.35, .3, .35], trees: .16, seed: 37, lakes: [[44, 8, 8, 5], [7, 31, 4, 4]], snow: true,
       bm: { montagne: .6, polaire: .7, foret: .8, savane: 1.5, desert: 1.6 }, desc: 'Neige fréquente, forêts de sapins à défricher, grands lacs. Montagne et banquise à prix réduit.',
       pal: { g: ['#dcebe2', '#e6f2ea', '#d0e3d8'], tuft: '#b0cabb', sky: '#5f7f86', trees: ['🌲', '🌲', '🌲'] } },
-    { id: 'bresil', name: 'Amazonie', country: 'Brésil', icon: '🌴', req: 8, money: 30000, demand: .9, wealth: .8, weather: [.4, .2, .4], trees: .24, seed: 41, lakes: [[10, 18, 6, 5], [47, 32, 5, 4]],
-      bm: { foret: .6, aquatique: .7, polaire: 2, desert: 1.5, montagne: 1.3 }, desc: 'Jungle dense : il faut défricher avant de construire. Pluies abondantes. Forêt et zones humides bon marché.',
+    { id: 'bresil', name: 'Amazonie', country: 'Brésil', icon: '🌴', req: 8, money: 30000, demand: .9, wealth: .8, weather: [.4, .2, .4], trees: .24, seed: 41, lakes: [[10, 18, 6, 5], [47, 32, 5, 4]], river: 39,
+      bm: { foret: .6, aquatique: .7, polaire: 2, desert: 1.5, montagne: 1.3 }, desc: 'Jungle dense à défricher, et un fleuve à franchir par des ponts. Pluies abondantes. Forêt et zones humides bon marché.',
       pal: { g: ['#4f9e4a', '#58a852', '#479443'], tuft: '#377a36', sky: '#1f5a2c', trees: ['🌴', '🌳', '🌴'] } },
     { id: 'australie', name: 'Outback', country: 'Australie', icon: '🪃', req: 10, money: 30000, demand: 1, wealth: 1.1, weather: [.82, .13, .05], trees: .02, seed: 53, lakes: [],
       bm: { desert: .6, savane: .8, aquatique: 1.5, polaire: 1.8, foret: 1.2 }, desc: 'Terre rouge, ciel sans nuages et presque pas d’eau. Désert et savane à bas prix.',
@@ -44,6 +44,7 @@
         const start = x >= 20 && x < 36 && y >= 26, cluster = 1 + Math.sin(x * .37 + m.seed) * Math.cos(y * .31 + m.seed * 2);
         if (r() < m.trees * cluster * (start ? .35 : 1)) v = 3;
       }
+      if (m.river != null) { const rx = m.river + Math.round(2 * Math.sin(y * .3)); if (x === rx || x === rx + 1) v = 2; }
       if (Math.abs(x - EX) <= 1 && y >= H - 9) v = 0;
       S.ground[t] = v;
     }
