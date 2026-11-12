@@ -199,27 +199,27 @@
   const g = (t, c, p) => ({ t, c, p });
   Z.SCENARIOS = [
     {
-      id: 's1', name: 'Premiers pas', icon: '🌱', money: 25000, days: 30, lvl: 2,
+      id: 's1', name: 'Premiers pas', icon: '🌱', money: 30000, days: 30, lvl: 2,
       desc: 'La mairie vous confie un terrain vide. Prouvez qu’un zoo peut y vivre.',
       goals: [g('Présenter 3 espèces', S => Z.speciesCount() >= 3, S => Z.speciesCount() + ' / 3'), g('120 visiteurs en une journée', S => best(S) >= 120, S => best(S) + ' / 120'), g('Réputation de 3,3 ★', S => Z.rep() >= 3.3, S => Z.rep().toFixed(1))],
     },
     {
-      id: 's2', name: 'Safari doré', icon: '🦒', money: 40000, days: 45, lvl: 5, rules: { biomes: ['savane'] },
+      id: 's2', name: 'Safari doré', icon: '🦒', money: 55000, days: 45, lvl: 5, rules: { biomes: ['savane'] },
       desc: 'Un mécène finance un parc 100 % savane. Aucun autre habitat n’est autorisé.',
       goals: [g('Présenter 4 espèces de savane', S => Z.speciesCount() >= 4, S => Z.speciesCount() + ' / 4'), g('250 visiteurs en une journée', S => best(S) >= 250, S => best(S) + ' / 250'), g('Réputation de 3,8 ★', S => Z.rep() >= 3.8, S => Z.rep().toFixed(1))],
     },
     {
-      id: 's3', name: 'Zoo à l’abandon', icon: '🏚️', money: 12000, days: 50, lvl: 6, setup: 'ruin',
+      id: 's3', name: 'Zoo à l’abandon', icon: '🏚️', money: 15000, days: 50, lvl: 6, setup: 'ruin',
       desc: 'Vous reprenez un zoo délabré, endetté et à la réputation désastreuse. Redressez-le.',
       goals: [g('Réputation de 3,5 ★', S => Z.rep() >= 3.5, S => Z.rep().toFixed(1)), g('Rembourser toutes les dettes', S => !S.loans.length, S => fmt(Z.debt()) + ' restants'), g('20 000 € de trésorerie', S => S.money >= 20000, S => fmt(S.money))],
     },
     {
-      id: 's4', name: 'La nurserie', icon: '🍼', money: 50000, days: 60, lvl: 6,
+      id: 's4', name: 'La nurserie', icon: '🍼', money: 70000, days: 60, lvl: 6,
       desc: 'Un programme européen de reproduction compte sur vous.',
       goals: [g('8 naissances', S => S.stats.births >= 8, S => S.stats.births + ' / 8'), g('Présenter 6 espèces', S => Z.speciesCount() >= 6, S => Z.speciesCount() + ' / 6'), g('Bonheur animal moyen de 80 %', S => { const a = allAnimals(); return a.length >= 12 && a.reduce((s, x) => s + x.happy, 0) / a.length >= 80; }, S => { const a = allAnimals(); return Math.round(a.reduce((s, x) => s + x.happy, 0) / Math.max(1, a.length)) + ' % (12 animaux min.)'; })],
     },
     {
-      id: 's5', name: 'Le grand zoo', icon: '🏆', money: 40000, days: 120, lvl: 1,
+      id: 's5', name: 'Le grand zoo', icon: '🏆', money: 50000, days: 120, lvl: 1,
       desc: 'Bâtissez un parc zoologique de renommée nationale.',
       goals: [g('Présenter 12 espèces', S => Z.speciesCount() >= 12, S => Z.speciesCount() + ' / 12'), g('400 visiteurs en une journée', S => best(S) >= 400, S => best(S) + ' / 400'), g('Réputation de 4,2 ★', S => Z.rep() >= 4.2, S => Z.rep().toFixed(1)), g('Valeur du zoo de 300 000 €', S => Z.zooValue() >= 300000, S => fmt(Z.zooValue()))],
     },

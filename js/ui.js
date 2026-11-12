@@ -96,6 +96,7 @@
       const b = ent(id); if (!b) return null; const d = BL[b.type];
       let h = `<p class="muted">${esc(d.desc)}</p>`;
       if (b.bt > 0) h += `<div class="warn">🏗️ En construction : ouverture dans ${b.bt} h</div>`;
+      if (b.closed && !b.bt) h += '<div class="warn">🚫 Fermé : aucun vendeur disponible. Embauchez-en dans 👷 Personnel.</div>';
       if (!b.acc.length && d.cat === 'shop') h += '<div class="warn">⚠️ Aucune allée reliée à l’entrée ne touche ce bâtiment</div>';
       if (d.price) h += `<label>Prix de vente : <b id="rv">${fmt(b.price)}</b> <span class="muted">(conseillé ${fmt(d.price)})</span><input type="range" min="${d.price * .4}" max="${d.price * 2.5}" step="0.5" value="${b.price}" data-r="price"></label>` + row('Ventes aujourd’hui', b.sold) + row('Coût par vente', fmt(d.goods));
       if (d.upkeep) h += row('Entretien', fmt(d.upkeep) + '/jour');
@@ -115,14 +116,21 @@
       return { title: d.icon + ' ' + esc(s.name), html: `<p class="muted">${d.name} · ${fmt(d.salary)}/jour</p>` + row('Activité', esc(Z.staffLabel(s))) + `<div class="btns"><button class="danger" data-a="fire" data-id="${s.id}">Licencier</button></div>` };
     },
     staff() {
-      const S = Z.S; let h = '';
+      const S = Z.S, nd = Z.staffNeeds(); let h = '<p class="muted">Les besoins dépendent du nombre d’animaux, d’enclos, de visiteurs, d’allées et de commerces. Ils sont recalculés en permanence.</p>';
+      if (S.lostY > 5 || S.lost > 5) h += `<div class="warn">🎟️ File d’attente à l’entrée : ${Math.round(S.lost || 0)} visiteurs perdus aujourd’hui, ${Math.round(S.lostY || 0)} hier.</div>`;
       for (const k in Z.STAFF) {
-        const d = Z.STAFF[k], list = S.staff.filter(s => s.type === k);
-        h += `<div class="card ${Z.staffUnlocked(k) ? '' : 'locked'}"><div class="ctitle"><b>${d.icon} ${d.name} × ${list.length}</b>${Z.staffUnlocked(k) ? `<button data-a="hire" data-k="${k}">Embaucher</button>` : `<span>🔒 Niveau ${d.lvl}</span>`}</div><p class="muted">${d.desc} Salaire : ${fmt(d.salary)}/jour (+200 € de recrutement).</p>`;
-        h += list.map(s => `<div class="row"><span><b>${esc(s.name)}</b> — ${esc(Z.staffLabel(s))}</span><span><button class="mini" data-a="goto" data-id="${s.id}">👁️</button><button class="mini danger" data-a="fire" data-id="${s.id}">✕</button></span></div>`).join('') + '</div>';
+        const d = Z.STAFF[k], list = S.staff.filter(s => s.type === k), n = nd[k], un = Z.staffUnlocked(k);
+        const st = !un ? '' : n.have < n.need ? (n.opt ? `<span class="tag">conseillé : ${n.need}</span>` : `<span class="tag bad">besoin : ${n.need}</span>`) : n.need ? `<span class="tag ok">besoin : ${n.need} ✓</span>` : '<span class="tag">aucun besoin</span>';
+        h += `<div class="card ${un ? '' : 'locked'}"><div class="ctitle"><b>${d.icon} ${d.name} × ${list.length}</b>${st}</div><p class="muted">${d.desc} Salaire : ${fmt(d.salary)}/jour.</p>`;
+        if (un) {
+          h += `<p class="muted">📋 ${n.why}.${n.have < n.need ? ` <span class="${n.opt ? '' : 'bad'}">Risque : ${n.risk}.</span>` : ''}</p>`;
+          h += `<div class="btns"><button data-a="hire" data-k="${k}">Embaucher (200 €)</button>${d.desk && list.length ? `<button class="danger" data-a="fire" data-id="${list[list.length - 1].id}">Licencier un ${d.name.toLowerCase()}</button>` : ''}</div>`;
+          if (!d.desk) h += list.map(s => `<div class="row"><span><b>${esc(s.name)}</b> — ${esc(Z.staffLabel(s))}</span><span><button class="mini" data-a="goto" data-id="${s.id}">👁️</button><button class="mini danger" data-a="fire" data-id="${s.id}">✕</button></span></div>`).join('');
+        } else h += `<p>🔒 Disponible au niveau ${d.lvl}</p>`;
+        h += '</div>';
       }
       const tot = S.staff.reduce((n, s) => n + Z.STAFF[s.type].salary, 0);
-      return { title: '👷 Personnel', html: h + row('Masse salariale', fmt(tot) + '/jour') };
+      return { title: '👷 Personnel', html: h + row('Effectif total', S.staff.length) + row('Masse salariale', fmt(tot) + '/jour') };
     },
     animals() {
       const S = Z.S; let h = row('Animaux', Z.animalCount()) + row('Espèces', Z.speciesCount()) + row('Naissances', S.stats.births);
@@ -227,7 +235,7 @@
         const c = Z.campaign(), med = { or: '🥇', argent: '🥈', bronze: '🥉' };
         h += '<p class="muted">Cinq scénarios à objectifs et durée limitée. Chaque réussite débloque le suivant et ajoute 5 000 € au capital de départ du mode libre. Lancer un scénario remplace la partie en cours.</p>';
         h += Z.SCENARIOS.map((s, i) => { const ok = Z.scnUnlocked(i); return `<div class="card ${ok ? (S.scn === s.id ? 'cur' : '') : 'locked'}"><div class="ctitle"><b>${s.icon} ${i + 1}. ${s.name}</b><b>${med[c[s.id]] || (ok ? '' : '🔒')}</b></div><p class="muted">${s.desc}</p><p>${s.goals.map(g => '• ' + g.t).join('<br>')}</p><p class="muted">Capital : ${fmt(s.money)} · Délai : ${s.days} jours</p>${ok ? `<div class="btns"><button data-a="scn" data-id="${s.id}">${S.scn === s.id ? 'Recommencer' : 'Jouer ce scénario'}</button></div>` : ''}</div>`; }).join('');
-        h += `<div class="card"><div class="ctitle"><b>🌍 Mode libre</b></div><p class="muted">Sans limite de temps. Capital de départ : ${fmt(20000 + Z.campaignBonus())}.</p><div class="btns"><button data-a="scn" data-id="">Nouvelle partie libre</button></div></div>`;
+        h += `<div class="card"><div class="ctitle"><b>🌍 Mode libre</b></div><p class="muted">Sans limite de temps. Capital de départ : ${fmt(25000 + Z.campaignBonus())}.</p><div class="btns"><button data-a="scn" data-id="">Nouvelle partie libre</button></div></div>`;
       }
       return { title: '🎯 Missions & campagne', html: h };
     },
@@ -297,7 +305,7 @@
       <li><b>🚧 Enclos</b> — choisissez un habitat et dessinez un enclos. Chaque espèce exige son habitat, assez d’espace et un groupe minimum.</li>
       <li><b>🛣️ Allées</b> — reliez l’enclos à l’entrée : visiteurs et personnel ne marchent que sur les allées.</li>
       <li><b>🖐️ Explorer</b> — touchez l’enclos pour y acheter des animaux.</li>
-      <li><b>👷 Personnel</b> — les soigneurs nourrissent et nettoient, les agents de maintenance ramassent les déchets et réparent les clôtures, les vétérinaires soignent.</li>
+      <li><b>👷 Personnel</b> — soigneurs, agents de maintenance et vétérinaires travaillent sur le terrain ; caissiers, vendeurs, animateurs et agents de sécurité tiennent leur poste. Le panneau indique combien il en faut selon la taille du zoo.</li>
       <li><b>🏪 Services</b> — restauration, toilettes, bancs, poubelles et boutique gardent les visiteurs satisfaits.</li>
       <li><b>💶 Finances</b> — réglez le prix du billet. La réputation (★) attire le public et débloque de nouvelles espèces.</li>
       <li><b>📈 Progression</b> — votre zoo gagne de l’expérience et monte de niveau (15 niveaux) : nouveaux habitats, espèces, bâtiments, employés et terrains. Les chantiers durent plusieurs heures et les animaux commandés sont livrés le lendemain.</li>
@@ -338,7 +346,7 @@
   }
   function clickSelect(sx, sy) {
     const w = Z.toWorld(sx, sy), wx = w.x / T, wy = w.y / T, S = Z.S; let best = null, bd = .9;
-    for (const a of S.staff.concat(S.visitors)) { const d = Math.hypot(a.x + a.ox - wx, a.y + a.oy - wy - .1); if (d < bd) { bd = d; best = a; } }
+    for (const a of S.staff.filter(s => !Z.STAFF[s.type].desk).concat(S.visitors)) { const d = Math.hypot(a.x + a.ox - wx, a.y + a.oy - wy - .1); if (d < bd) { bd = d; best = a; } }
     if (best) return openPanel(best.kind === 'staff' ? 'staffm' : 'vis', best.id);
     const tx = Math.floor(wx), ty = Math.floor(wy), o = Z.inb(tx, ty) ? Z.occ[Z.idx(tx, ty)] : null;
     if (o) openPanel(o.kind === 'encl' ? 'encl' : 'bld', o.id); else if (Z.inb(tx, ty) && !Z.owned(tx, ty)) openPanel('land', Z.parcelAt(tx, ty).id); else if (ui.sel) closePanel();

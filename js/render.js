@@ -159,6 +159,7 @@
     }
     // personnel
     for (const s of S.staff) {
+      if (Z.STAFF[s.type].desk) continue;
       const d = Z.STAFF[s.type], x = (s.x + s.ox) * T, y = (s.y + s.oy) * T;
       ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x, y - 4, 10.5, 0, 7); ctx.fill();
       ctx.strokeStyle = ui.sel === s ? '#000' : d.color; ctx.lineWidth = 2.5; ctx.stroke();

@@ -13,8 +13,8 @@
   for (const k in BIO_LVL) BIO[k].lvl = BIO_LVL[k];
   const BL_LVL = { food: 1, drink: 1, toilet: 1, bench: 1, bin: 1, tree: 1, flowers: 1, gift: 3, fountain: 4, ice: 5, play: 6, resto: 8, statue: 10 };
   for (const k in BL_LVL) BL[k].lvl = BL_LVL[k];
-  const ST_LVL = { keeper: 1, maint: 2, vet: 3 };
-  for (const k in ST_LVL) Z.STAFF[k].lvl = ST_LVL[k];
+  const ST_LVL = { keeper: 1, maint: 2, vet: 3, guide: 5, security: 7 };
+  for (const k in ST_LVL) if (Z.STAFF[k]) Z.STAFF[k].lvl = ST_LVL[k];
 
   Z.level = () => Z.S.level;
   Z.speciesUnlocked = k => SP[k].lvl <= Z.S.level || !!Z.S.unlocked[k];
@@ -34,7 +34,7 @@
     for (const k in BIO) if (BIO[k].lvl === L && L > 1) r.push(BIO[k].icon + ' Habitat ' + BIO[k].name.toLowerCase());
     for (const k in SP) if (SP[k].lvl === L) r.push(SP[k].e + ' ' + SP[k].n);
     for (const k in BL) if (BL[k].lvl === L && L > 1) r.push(BL[k].icon + ' ' + BL[k].name);
-    for (const k in Z.STAFF) if (Z.STAFF[k].lvl === L && L > 1) r.push(Z.STAFF[k].icon + ' ' + Z.STAFF[k].name);
+    for (const k in Z.STAFF) if ((ST_LVL[k] || 1) === L && L > 1) r.push(Z.STAFF[k].icon + ' ' + Z.STAFF[k].name);
     for (const p of Z.PARCELS) if (p.lvl === L && L > 1) r.push('🗺️ Terrain « ' + p.n + ' »');
     return r;
   };
