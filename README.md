@@ -12,7 +12,12 @@ Jeu de gestion de zoo réaliste, jouable directement dans le navigateur (aucune 
 - **Services** : stand burger, buvette, boutique de souvenirs, toilettes, bancs, poubelles, décorations.
 - **Personnel** : soigneurs (nourriture, nettoyage), agents de maintenance (déchets, clôtures), vétérinaires (soins).
 - **Économie** : prix du billet et des boutiques, salaires, entretien, emprunt, bilan quotidien.
-- Météo, cycle jour/nuit, objectifs, sauvegarde automatique dans le navigateur.
+- **Modifier ses créations** : déplacer enclos et bâtiments, agrandir ou réduire un enclos, le renommer, transférer un animal.
+- **Gestion** : statistiques avec courbes, prévisions à 3 jours, banque (trois types de prêts, faillite), campagnes de publicité.
+- **Missions** : contrats à accepter (inspection sanitaire, programme de conservation, dons d'animaux…) avec récompenses.
+- **Campagne** : cinq scénarios à objectifs et durée limitée, avec médailles, plus un mode libre.
+- **Vues** : surimpressions bonheur des animaux, propreté et affluence, mini-carte.
+- Météo, cycle jour/nuit, objectifs qui débloquent de nouveaux bâtiments, sauvegarde automatique dans le navigateur.
 
 ## Commandes
 

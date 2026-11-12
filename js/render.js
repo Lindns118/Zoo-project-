@@ -6,7 +6,8 @@
   let cv, ctx, dpr = 1, cw = 0, ch = 0;
   const SS = 1.5; // résolution de la couche statique
   const ground = document.createElement('canvas'); ground.width = W * T * SS; ground.height = H * T * SS;
-  const g = ground.getContext('2d');
+  const g = ground.getContext('2d'); Z.groundCanvas = ground;
+  Z.viewRect = () => ({ x: cam.x - cw / 2 / cam.z, y: cam.y - ch / 2 / cam.z, w: cw / cam.z, h: ch / cam.z });
   const hash = (x, y) => (((x * 73856093) ^ (y * 19349663)) >>> 0) % 1000 / 1000;
   const emoji = (c, ch, x, y, px) => { c.font = px + 'px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#000'; c.fillText(ch, x, y); };
   function rr(c, x, y, w, h, r) { c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath(); }
@@ -111,6 +112,22 @@
         let ic = ''; if (e.food <= 0) ic += '🍽️'; if (e.clean < 30) ic += '💩'; if (e.fence < 30) ic += '🔧'; if (!e.vp.length) ic += '🚫';
         if (ic) { ctx.fillStyle = 'rgba(255,255,255,.92)'; rr(ctx, x + w / 2 - 10 - ic.length * 3.2, y - 22, 20 + ic.length * 6.4, 20, 10); ctx.fill(); emoji(ctx, ic, x + w / 2, y - 11, 12); }
       } else if (!e.vp.length) emoji(ctx, '🚫', x + w / 2, y + h / 2, 18);
+    }
+    // vues en surimpression
+    if (ui.view) {
+      const col = v => 'hsla(' + Math.round(Z.clamp(v, 0, 100) * 1.2) + ',85%,45%,.55)';
+      if (ui.view === 'crowd') {
+        const cnt = {}; for (const v of S.visitors) { const t = Z.idx(Math.floor(v.x), Math.floor(v.y)); cnt[t] = (cnt[t] || 0) + 1; }
+        for (const t in cnt) { ctx.fillStyle = 'rgba(220,30,30,' + Math.min(.8, cnt[t] / 8) + ')'; ctx.fillRect((t % W) * T, ((t / W) | 0) * T, T, T); }
+      } else {
+        if (ui.view === 'clean') for (let i = 0; i < W * H; i++) if (S.litter[i] > 0) { ctx.fillStyle = 'rgba(220,30,30,.6)'; ctx.fillRect((i % W) * T, ((i / W) | 0) * T, T, T); }
+        for (const e of S.enclosures) {
+          if (!e.animals.length) continue; const v = ui.view === 'happy' ? Z.avg(e, 'happy') : e.clean;
+          ctx.fillStyle = col(v); ctx.fillRect(e.x * T, e.y * T, e.w * T, e.h * T);
+          ctx.font = 'bold 15px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,.6)'; ctx.fillStyle = '#fff';
+          const tx = (e.x + e.w / 2) * T, ty = (e.y + e.h / 2) * T; ctx.strokeText(Math.round(v) + ' %', tx, ty); ctx.fillText(Math.round(v) + ' %', tx, ty);
+        }
+      }
     }
     // sélection bâtiment
     if (ui.sel && ui.sel.kind === 'bld') { const s = BL[ui.sel.type].size * T; ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.setLineDash([6, 4]); ctx.strokeRect(ui.sel.x * T - 2, ui.sel.y * T - 2, s + 4, s + 4); ctx.setLineDash([]); }

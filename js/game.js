@@ -13,7 +13,7 @@
   const MIN_PER_SEC = 6.67; // minutes de jeu par seconde réelle (vitesse x1)
 
   // ---------- Partie ----------
-  Z.newGame = function () {
+  Z.newGame = function (scn) {
     const S = {
       v: 1, money: 30000, day: 1, minute: 8 * 60, lastHour: 8, speed: 1, ticket: 8,
       ground: new Array(W * H).fill(0), litter: new Array(W * H).fill(0),
@@ -22,8 +22,8 @@
       goal: 0, unlocked: {}, stats: { visitors: 0, births: 0, deaths: 0 }, log: [],
     };
     for (let y = H - 6; y < H; y++) S.ground[idx(EX, y)] = 1;
-    Z.S = S; Z.claims = {}; Z.thoughts = [];
-    Z.rebuild(true); checkUnlocks(true);
+    Z.S = S; Z.claims = {}; Z.thoughts = []; Z.migrate(S); if (!scn) S.money += Z.campaignBonus();
+    Z.rebuild(true); if (scn) Z.applyScenario(scn); checkUnlocks(true);
   };
 
   Z.save = function () {
@@ -39,7 +39,7 @@
       const S = JSON.parse(raw); if (!S || S.v !== 1) return false;
       S.visitors = [];
       for (const s of S.staff) { s.st = 'idle'; s.cool = 1; s.task = null; s.path = null; }
-      Z.S = S; Z.claims = {}; Z.thoughts = [];
+      Z.S = S; Z.claims = {}; Z.thoughts = []; Z.migrate(S);
       Z.rebuild(true); return true;
     } catch (e) { return false; }
   };
@@ -155,7 +155,7 @@
   Z.demand = function () { // visiteurs par heure
     const S = Z.S, at = Z.attract(); if (at <= 0) return 0;
     const pf = clamp(1.6 - S.ticket / Z.fairPrice() * .8, 0, 1.5);
-    return (2 + 1.6 * Math.sqrt(at) + at * .06) * (.4 + Z.rep() / 5 * 1.2) * pf * Z.weatherF();
+    return (2 + 1.6 * Math.sqrt(at) + at * .06) * (.4 + Z.rep() / 5 * 1.2) * pf * Z.weatherF() * (S.ads ? S.ads.f : 1);
   };
   Z.isOpen = () => { const h = Z.S.minute / 60; return h >= 9 && h < 19; };
   Z.isNight = () => { const h = Z.S.minute / 60; return h >= 21 || h < 6; };
@@ -195,6 +195,7 @@
   Z.enclCost = (w, h, biome) => w * h * Z.BIOMES[biome].cost + 2 * (w + h) * 15;
   Z.buildEncl = function (x, y, w, h, biome) {
     if (w < 2 || h < 2 || w * h < 6) { Z.notify('Enclos trop petit (6 cases minimum)', 'bad'); return null; }
+    if (Z.S.rules.biomes && !Z.S.rules.biomes.includes(biome)) { Z.notify('Cet habitat n’est pas autorisé dans ce scénario', 'bad'); return null; }
     if (!Z.freeRect(x, y, w, h)) { Z.notify('Emplacement occupé', 'bad'); return null; }
     if (!Z.pay('build', Z.enclCost(w, h, biome))) return null;
     const S = Z.S, e = { id: S.nextId++, kind: 'encl', x, y, w, h, biome, name: 'Enclos ' + Z.BIOMES[biome].name.toLowerCase() + ' n°' + (S.enclosures.length + 1), animals: [], food: 100, clean: 100, fence: 100, up: {}, vp: [] };
@@ -202,6 +203,7 @@
   };
   Z.place = function (type, x, y) {
     const d = BL[type];
+    if (!Z.bldUnlocked(type)) { Z.notify('Bâtiment pas encore débloqué', 'bad'); return null; }
     if (!Z.freeRect(x, y, d.size, d.size)) { Z.notify('Emplacement occupé', 'bad'); return null; }
     if (!Z.pay('build', d.cost)) return null;
     const S = Z.S, b = { id: S.nextId++, kind: 'bld', type, x, y, sold: 0, acc: [] }; if (d.price) b.price = d.price;
@@ -275,7 +277,7 @@
       for (const a of e.animals.slice()) {
         a.hunger = e.food > 0 ? Math.min(100, a.hunger + 12) : Math.max(0, a.hunger - 3.5);
         a.happy += (Z.happyTarget(e, a) - a.happy) * .15;
-        if (a.hunger <= 0) a.health -= 4; else if (a.sick) a.health -= 2.5; else if (a.happy > 50) a.health = Math.min(100, a.health + 1.5);
+        if (a.hunger <= 0) a.health -= 2; else if (a.sick) a.health -= 2.5; else if (a.happy > 50) a.health = Math.min(100, a.health + 1.5);
         if (!a.sick) {
           const p = .0005 * (1 + (100 - e.clean) / 35 + (100 - a.happy) / 60) * (anySick ? 5 : 1);
           if (Math.random() < p) { a.sick = 1; Z.notify('🤒 ' + a.name + ' (' + sp.n.toLowerCase() + ') est malade', 'warn', e); }
@@ -325,11 +327,11 @@
     Z.earn('tickets', S.ticket); S.stats.visitors++; S.fin.vis++; S.visitors.push(v);
   }
   function goBuilding(v, type) {
-    const all = Z.S.buildings.filter(b => b.type === type && b.acc.length); if (!all.length) return false;
+    const ts = [].concat(type), all = Z.S.buildings.filter(b => ts.includes(b.type) && b.acc.length); if (!all.length) return false;
     const goals = []; for (const b of all) for (const t of b.acc) goals.push(t);
     const p = Z.findPath(tileOf(v), goals); if (!p) return false;
     const end = p.length ? p[p.length - 1] : tileOf(v);
-    v.path = p; v.st = 'walk'; v.goal = { k: type, id: all.find(b => b.acc.includes(end)).id }; return true;
+    v.path = p; v.st = 'walk'; const tb = all.find(b => b.acc.includes(end)); v.goal = { k: tb.type, id: tb.id }; return true;
   }
   function complain(v, key, txt, pen) { if (!v.c[key]) { v.c[key] = 1; v.happy -= pen; think(v, txt); } }
   function leave(v) {
@@ -342,8 +344,10 @@
     if (v.leaving || !Z.isOpen() || v.happy < 15 || v.energy < 8) return leave(v);
     if (v.bladder < 25) { if (goBuilding(v, 'toilet')) return; complain(v, 'wc', 'Il n’y a pas de toilettes ici ?! 😣', 12); v.bladder = 32; }
     if (v.thirst < 30) { if (goBuilding(v, 'drink')) return; complain(v, 'drink', 'J’ai soif et rien à boire…', 8); v.thirst = 36; }
-    if (v.hunger < 25) { if (goBuilding(v, 'food')) return; complain(v, 'food', 'J’ai faim, il n’y a rien à manger !', 8); v.hunger = 32; }
+    if (v.hunger < 25) { if (goBuilding(v, ['food', 'resto'])) return; complain(v, 'food', 'J’ai faim, il n’y a rien à manger !', 8); v.hunger = 32; }
     if (v.energy < 28 && !v.c.bench) { if (goBuilding(v, 'bench')) return; complain(v, 'bench', 'Pas un seul banc pour se reposer…', 5); }
+    if (!v.c.ice && Math.random() < .05) { v.c.ice = 1; if (goBuilding(v, 'ice')) return; }
+    if (v.kid && !v.c.play && Math.random() < .12) { v.c.play = 1; if (goBuilding(v, 'play')) return; }
     const cand = S.enclosures.filter(e => e.animals.length && e.vp.length && !v.seen[e.id]);
     if (cand.length) {
       let best = null, bd = 1e9;
@@ -371,6 +375,9 @@
     else if (g.k === 'food') { if (shopBuy(v, b, 1)) { v.hunger = 100; v.trash = 1; v.st = 'busy'; v.t = 15; } else v.hunger = 40; }
     else if (g.k === 'drink') { if (shopBuy(v, b, 1)) { v.thirst = 100; v.bladder -= 20; v.trash = 1; v.st = 'busy'; v.t = 5; } else v.thirst = 42; }
     else if (g.k === 'gift') { if (v.happy > 50 && shopBuy(v, b, v.happy / 70)) { v.st = 'busy'; v.t = 10; think(v, 'Un joli souvenir du zoo 🎁'); } }
+    else if (g.k === 'resto') { if (shopBuy(v, b, 1)) { v.hunger = 100; v.thirst = Math.max(v.thirst, 70); v.energy = Math.min(100, v.energy + 20); v.happy += 3; v.st = 'busy'; v.t = 30; } else v.hunger = 40; }
+    else if (g.k === 'ice') { if (shopBuy(v, b, 1)) { v.thirst = Math.min(100, v.thirst + 25); v.happy += 4; v.trash = 1; v.st = 'busy'; v.t = 6; } }
+    else if (g.k === 'play') { v.happy += 8; v.st = 'busy'; v.t = 20; think(v, 'Trop bien, l’aire de jeux ! 🎠'); }
   }
   function finishBusy(v) {
     v.st = 'idle'; const g = v.act; v.act = null; if (!g) return;
@@ -463,24 +470,26 @@
     for (const k in SP) if (SP[k].rep > 0 && !S.unlocked[k] && r >= SP[k].rep) { S.unlocked[k] = 1; if (!silent) Z.notify('🔓 Nouvelle espèce disponible : ' + SP[k].e + ' ' + SP[k].n, 'good'); }
   }
   function checkGoals() {
-    const S = Z.S;
+    const S = Z.S; if (S.scn) return;
     while (S.goal < Z.GOALS.length && Z.GOALS[S.goal].c(S)) {
       const g = Z.GOALS[S.goal]; S.goal++; Z.earn('rewards', g.r);
       Z.notify('🎯 Objectif atteint : ' + g.t + ' (+' + Z.fmt(g.r) + ')', 'good');
+      for (const k in BL) if (BL[k].need === S.goal - 1) Z.notify('🔓 Nouveau bâtiment disponible : ' + BL[k].icon + ' ' + BL[k].name, 'good');
     }
   }
-  function hourly() { animalsHourly(); checkUnlocks(false); checkGoals(); }
+  function hourly() { animalsHourly(); checkUnlocks(false); checkGoals(); if (Z.onHourly) Z.onHourly(); }
   function daily() {
     const S = Z.S;
     for (const s of S.staff) Z.spend('salaries', Z.STAFF[s.type].salary);
     for (const b of S.buildings) { if (BL[b.type].upkeep) Z.spend('upkeep', BL[b.type].upkeep); b.sold = 0; }
-    if (S.loan > 0) Z.spend('interest', S.loan * .004);
+    Z.bankDaily();
     let inc = 0, exp = 0; for (const k in S.fin.today) { const v = S.fin.today[k]; if (v > 0) inc += v; else exp -= v; }
-    S.fin.history.push({ d: S.day, inc, exp, vis: S.fin.vis, cats: S.fin.today }); if (S.fin.history.length > 30) S.fin.history.shift();
+    S.fin.history.push({ d: S.day, inc, exp, vis: S.fin.vis, cats: S.fin.today, money: S.money, rep: Z.rep(), an: Z.animalCount(), val: Z.zooValue() }); if (S.fin.history.length > 60) S.fin.history.shift();
+    if (S.fin.vis > S.stats.bestDay) S.stats.bestDay = S.fin.vis;
     S.fin.today = {}; S.fin.vis = 0; S.day++;
-    const r = Math.random(); S.weather = r < .5 ? 'sun' : r < .8 ? 'cloud' : 'rain';
+    S.weather = S.forecast.shift(); S.forecast.push(Z.rollWeather());
     animalsDaily();
-    if (S.money < 0) Z.notify('⚠️ Votre trésorerie est négative ! Réduisez vos dépenses ou empruntez.', 'bad');
+    if (Z.onDaily) Z.onDaily();
     Z.save();
   }
   function step(dt) {
@@ -488,10 +497,11 @@
     if (S.minute >= 1440) { S.minute -= 1440; S.lastHour = -1; daily(); }
     const h = Math.floor(S.minute / 60); if (h !== S.lastHour) { S.lastHour = h; hourly(); }
     const hr = S.minute / 60;
-    if (hr >= 9 && hr < 17.5 && S.visitors.length < 350 && Math.random() < Z.demand() / 60 * dt) spawnVisitor();
+    if (hr >= 9 && hr < 17.5 && S.visitors.length < 500 && Math.random() < Z.demand() / 60 * dt) spawnVisitor();
     for (const v of S.visitors) visitorUpdate(v, dt);
     if (S.visitors.some(v => v.gone)) S.visitors = S.visitors.filter(v => !v.gone);
     if (hr >= 21 && S.visitors.length) S.visitors = [];
+    if (S.visitors.length > S.stats.peak) S.stats.peak = S.visitors.length;
     for (const s of S.staff) staffUpdate(s, dt);
     animalsMove(dt);
   }

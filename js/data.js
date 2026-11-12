@@ -43,11 +43,15 @@ Z.BUILDINGS = {
   drink:    { name: 'Buvette', icon: '🥤', size: 1, cost: 900, upkeep: 20, price: 3.5, goods: 1.5, cat: 'shop', color: '#3b9be8', desc: 'Boissons fraîches.' },
   gift:     { name: 'Boutique souvenirs', icon: '🎁', size: 2, cost: 3500, upkeep: 50, price: 15, goods: 9, cat: 'shop', color: '#b05cc9', desc: 'Les visiteurs satisfaits achètent en partant.' },
   toilet:   { name: 'Toilettes', icon: '🚻', size: 2, cost: 1500, upkeep: 30, cat: 'shop', color: '#6b8a99', desc: 'Indispensables !' },
+  ice:      { name: 'Glacier', icon: '🍦', size: 1, cost: 1100, upkeep: 20, price: 4, goods: 1.5, cat: 'shop', color: '#f29cc0', need: 4, desc: 'Une petite douceur qui rend les visiteurs heureux.' },
+  play:     { name: 'Aire de jeux', icon: '🎠', size: 2, cost: 3000, upkeep: 35, cat: 'shop', color: '#f2c230', need: 5, desc: 'Les enfants l’adorent (gratuit).' },
+  resto:    { name: 'Restaurant', icon: '🍽️', size: 2, cost: 6000, upkeep: 90, price: 18, goods: 8, cat: 'shop', color: '#8c5a3c', need: 8, desc: 'Repas complet : rassasie, désaltère et repose.' },
   bench:    { name: 'Banc', icon: '🪑', size: 1, cost: 120, upkeep: 0, cat: 'shop', desc: 'Les visiteurs fatigués s’y reposent.' },
   bin:      { name: 'Poubelle', icon: '🗑️', size: 1, cost: 80, upkeep: 0, cat: 'shop', desc: 'Évite les déchets dans un rayon de 5 cases.' },
   tree:     { name: 'Arbre', icon: '🌳', size: 1, cost: 150, upkeep: 0, cat: 'decor', beauty: 1, desc: 'Embellit le zoo.' },
   flowers:  { name: 'Massif de fleurs', icon: '🌷', size: 1, cost: 90, upkeep: 0, cat: 'decor', beauty: 1, desc: 'Embellit le zoo.' },
   fountain: { name: 'Fontaine', icon: '⛲', size: 1, cost: 1200, upkeep: 5, cat: 'decor', beauty: 4, desc: 'Très décorative.' },
+  statue:   { name: 'Statue', icon: '🗿', size: 1, cost: 2500, upkeep: 0, cat: 'decor', beauty: 6, need: 10, desc: 'Une œuvre qui fait la fierté du zoo.' },
 };
 
 Z.STAFF = {
