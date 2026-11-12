@@ -13,7 +13,7 @@
   const MIN_PER_SEC = 6.67; // minutes de jeu par seconde réelle (vitesse x1)
 
   // ---------- Partie ----------
-  Z.newGame = function (scn) {
+  Z.newGame = function (scn, map) {
     const S = {
       v: 1, money: 25000, day: 1, minute: 8 * 60, lastHour: 8, speed: 1, ticket: 8,
       ground: new Array(W * H).fill(0), litter: new Array(W * H).fill(0),
@@ -21,8 +21,9 @@
       ratings: [], fin: { today: {}, vis: 0, history: [] }, loan: 0, weather: 'sun',
       goal: 0, unlocked: {}, stats: { visitors: 0, births: 0, deaths: 0 }, log: [],
     };
+    S.map = map || 'france'; Z.genTerrain(S);
     for (let y = H - 6; y < H; y++) S.ground[idx(EX, y)] = 1;
-    Z.S = S; Z.claims = {}; Z.thoughts = []; Z.migrate(S); if (!scn) S.money += Z.campaignBonus();
+    Z.S = S; Z.claims = {}; Z.thoughts = []; Z.migrate(S); S.money = Z.mapDef().money; if (!scn) S.money += Z.campaignBonus();
     Z.rebuild(true); if (scn) Z.applyScenario(scn); checkUnlocks(true);
   };
 
@@ -30,20 +31,20 @@
     try {
       const skip = { vp: 1, acc: 1, path: 1, task: 1 };
       const json = JSON.stringify(Z.S, (k, v) => k === 'visitors' ? [] : skip[k] ? undefined : v);
-      localStorage.setItem(SAVE_KEY, json); return true;
+      localStorage.setItem(Z.slotKey(Z.slot), json); return true;
     } catch (e) { return false; }
   };
   Z.load = function () {
     try {
-      const raw = localStorage.getItem(SAVE_KEY); if (!raw) return false;
+      const raw = localStorage.getItem(Z.slotKey(Z.slot)); if (!raw) return false;
       const S = JSON.parse(raw); if (!S || S.v !== 1) return false;
-      S.visitors = [];
+      S.visitors = []; S.map = S.map || 'france';
       for (const s of S.staff) { s.st = 'idle'; s.cool = 1; s.task = null; s.path = null; }
       Z.S = S; Z.claims = {}; Z.thoughts = []; Z.migrate(S);
       Z.rebuild(true); return true;
     } catch (e) { return false; }
   };
-  Z.wipe = function () { try { localStorage.removeItem(SAVE_KEY); } catch (e) { } };
+  Z.wipe = function () { try { localStorage.removeItem(Z.slotKey(Z.slot)); } catch (e) { } };
 
   // ---------- Carte dérivée ----------
   function adjacent(x, y, w, h) {
@@ -68,7 +69,7 @@
     for (const e of S.enclosures) e.vp = adjacent(e.x, e.y, e.w, e.h);
     const cover = Z.binCover = new Uint8Array(W * H); let beauty = 0, paths = 0;
     for (const b of S.buildings) {
-      const d = BL[b.type]; b.acc = adjacent(b.x, b.y, d.size, d.size); beauty += d.beauty || 0;
+      const d = BL[b.type]; b.acc = S.ground[idx(b.x, b.y)] === 1 ? (reach[idx(b.x, b.y)] ? [idx(b.x, b.y)] : []) : adjacent(b.x, b.y, d.size, d.size); beauty += d.beauty || 0;
       if (b.type === 'bin') for (let y = b.y - 5; y <= b.y + 5; y++) for (let x = b.x - 5; x <= b.x + 5; x++) if (inb(x, y)) cover[idx(x, y)] = 1;
     }
     for (let i = 0; i < W * H; i++) { if (S.ground[i] === 1) paths++; else S.litter[i] = 0; }
@@ -155,12 +156,12 @@
   Z.demand = function () { // visiteurs par heure
     const S = Z.S, at = Z.attract(); if (at <= 0) return 0;
     const pf = clamp(1.6 - S.ticket / Z.fairPrice() * .8, 0, 1.5);
-    return (2 + 1.6 * Math.sqrt(at) + at * .06) * (.4 + Z.rep() / 5 * 1.2) * pf * Z.weatherF() * (S.ads ? S.ads.f : 1) * Z.rmod('demand');
+    return (2 + 1.6 * Math.sqrt(at) + at * .06) * (.4 + Z.rep() / 5 * 1.2) * pf * Z.weatherF() * (S.ads ? S.ads.f : 1) * Z.rmod('demand') * Z.mapMod('demand');
   };
   Z.isOpen = () => { const h = Z.S.minute / 60; return h >= 9 && h < 19; };
   Z.isNight = () => { const h = Z.S.minute / 60; return h >= 21 || h < 6; };
   Z.happyTarget = function (e, a) {
-    const sp = SP[a.sp], n = e.animals.length; let h = 76;
+    const sp = SP[a.sp], n = e.animals.length; let h = 76 + Z.climateBonus(e.biome);
     const ratio = e.w * e.h / (n * sp.space);
     if (ratio < 1) h -= (1 - ratio) * 70; else if (ratio >= 1.5) h += 4;
     if (n < sp.grp) h -= 18;
@@ -192,7 +193,7 @@
     if (!freeTile(x, y) || !Z.pay('build', 12)) return false;
     Z.S.ground[idx(x, y)] = 1; Z.rebuild(false); return true;
   };
-  Z.enclCost = (w, h, biome) => w * h * Z.BIOMES[biome].cost + 2 * (w + h) * 25;
+  Z.enclCost = (w, h, biome) => w * h * Math.round(Z.BIOMES[biome].cost * Z.biomeMult(biome)) + 2 * (w + h) * 25;
   Z.buildEncl = function (x, y, w, h, biome) {
     if (w < 2 || h < 2 || w * h < 6) { Z.notify('Enclos trop petit (6 cases minimum)', 'bad'); return null; }
     if (Z.S.rules.biomes && !Z.S.rules.biomes.includes(biome)) { Z.notify('Cet habitat n’est pas autorisé dans ce scénario', 'bad'); return null; }
@@ -205,7 +206,8 @@
   Z.place = function (type, x, y) {
     const d = BL[type];
     if (!Z.bldUnlocked(type)) { Z.notify('Bâtiment pas encore débloqué', 'bad'); return null; }
-    if (!Z.freeRect(x, y, d.size, d.size)) { Z.notify('Emplacement occupé', 'bad'); return null; }
+    if (d.onPath) { if (!(inb(x, y) && Z.S.ground[idx(x, y)] === 1 && !Z.occ[idx(x, y)] && Z.owned(x, y) && !(x === EX && y >= H - 2))) { Z.notify('À poser sur une allée libre', 'bad'); return null; } }
+    else if (!Z.freeRect(x, y, d.size, d.size)) { Z.notify('Emplacement occupé', 'bad'); return null; }
     if (!Z.pay('build', d.cost)) return null;
     const S = Z.S, b = { id: S.nextId++, kind: 'bld', type, x, y, sold: 0, acc: [], bt: Z.bldBuildHours(type) }; if (d.price) b.price = d.price;
     S.buildings.push(b); Z.rebuild(false); return b;
@@ -217,6 +219,7 @@
       S.enclosures.splice(S.enclosures.indexOf(o), 1); S.money += Z.enclCost(o.w, o.h, o.biome) * .3;
     } else if (o) { S.buildings.splice(S.buildings.indexOf(o), 1); S.money += BL[o.type].cost * .3; }
     else if (S.ground[t] === 1) { if (x === EX && y >= H - 2) return false; S.ground[t] = 0; }
+    else if (S.ground[t] === 3) { if (!Z.owned(x, y)) { Z.notify('Ce terrain ne vous appartient pas', 'bad'); return false; } if (!Z.pay('build', 120)) return false; S.ground[t] = 0; }
     else return false;
     Z.rebuild(true); return true;
   };
@@ -323,7 +326,7 @@
   function spawnVisitor() {
     const S = Z.S, v = {
       id: S.nextId++, kind: 'vis', name: pick(Z.PEOPLE_NAMES), x: EX + .5, y: EY + .5, ox: rnd(-.32, .32), oy: rnd(-.32, .32),
-      path: null, st: 'idle', t: 0, goal: null, money: ri(25, 140), hunger: rnd(45, 100), thirst: rnd(45, 100), bladder: rnd(55, 100), energy: rnd(75, 100),
+      path: null, st: 'idle', t: 0, goal: null, money: Math.round(ri(25, 140) * Z.mapMod('wealth')), hunger: rnd(45, 100), thirst: rnd(45, 100), bladder: rnd(55, 100), energy: rnd(75, 100),
       happy: 50, seen: {}, nseen: 0, trash: 0, gift: false, lt: -1, thought: '', col: pick(COLS), skin: pick(SKINS), kid: Math.random() < .25, c: {},
     };
     const fair = Z.fairPrice();

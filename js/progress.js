@@ -74,7 +74,7 @@
 
   // ---------- Chantiers et livraisons ----------
   Z.enclBuildHours = (w, h) => Math.round(6 + w * h * .3);
-  Z.bldBuildHours = t => BL[t].size === 1 ? (BL[t].cat === 'decor' ? 2 : 5) : 12;
+  Z.bldBuildHours = t => BL[t].onPath ? 1 : BL[t].size === 1 ? (BL[t].cat === 'decor' ? 2 : 5) : 12;
   Z.DELIVERY_HOURS = 14;
   Z.progressHourly = function () {
     const S = Z.S;

@@ -6,6 +6,10 @@ Jeu de gestion de zoo réaliste, jouable directement dans le navigateur (aucune 
 
 ## Le jeu
 
+- **Vue isométrique** : sol en losanges, bâtiments en volume, clôtures et personnages triés en profondeur.
+- **Cartes du monde** : six régions (France, Kenya, Canada, Brésil, Australie, Japon) avec leur relief, leur climat, leur public et leurs habitats naturels moins chers ; une sauvegarde par carte.
+- **Plan de construction** : les tracés s'ajoutent à un plan qu'on valide ou annule d'un coup ; bancs et poubelles se posent sur les allées ; arbres à défricher.
+
 - **Enclos** : cinq habitats (savane, forêt, montagne, aquatique, polaire). Chaque espèce exige son habitat, assez d'espace et un groupe minimum.
 - **22 espèces** avec faim, santé, bonheur, maladies, vieillissement et reproduction. Les espèces rares se débloquent avec la réputation du zoo.
 - **Visiteurs** : chacun a ses besoins (faim, soif, toilettes, fatigue), son budget et son avis. Leur satisfaction fait la réputation.
@@ -28,8 +32,9 @@ Jeu de gestion de zoo réaliste, jouable directement dans le navigateur (aucune 
 
 ## Commandes
 
-- Souris : glisser pour se déplacer, molette pour zoomer, clic pour agir.
+- Souris : glisser pour se déplacer, molette pour zoomer, clic pour agir, clic droit glissé pour se déplacer pendant une construction.
 - Tactile : un doigt pour agir, deux doigts pour se déplacer et zoomer.
+- Appui long puis glisser : déplacer la carte pendant une construction, ou saisir un bâtiment ou un enclos en mode Explorer.
 - Clavier : flèches ou ZQSD pour se déplacer, Espace pour la pause, 1/2/3 pour la vitesse, Échap pour annuler.
 
 ## Technique

@@ -93,7 +93,7 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .lc { width: 100%; height: 72px; display: block; background: #fff; border: 1px solid var(--line); border-radius: 10px; }
 .lcl { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--mut); margin-top: 2px; } .lcl b { color: var(--ink); }
 select { font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 9px; background: #fff; max-width: 100%; }
-#mini { position: fixed; left: 8px; bottom: 86px; width: 196px; height: 140px; border: 3px solid var(--bg); border-radius: 12px; box-shadow: var(--sh); z-index: 4; cursor: crosshair; touch-action: none; }
+#mini { position: fixed; left: 8px; bottom: 86px; width: 196px; height: 98px; background: #24502a; border: 3px solid var(--bg); border-radius: 12px; box-shadow: var(--sh); z-index: 4; cursor: crosshair; touch-action: none; }
 @media (max-width: 900px) { #mini { display: none; } }
 
 .lvl { display: flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 20px; background: #efe4fb; border-color: #d9c4f2; }
@@ -114,3 +114,7 @@ select { font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-
 .row.simbest { background: #e9f6ea; border-radius: 6px; padding-left: 4px; padding-right: 4px; }
 .tool { min-width: 60px; padding: 5px 3px; }
 @media (max-width: 700px) { .tool { min-width: 56px; } }
+
+#planbar { position: fixed; bottom: 172px; left: 50%; transform: translateX(-50%); display: none; align-items: center; gap: 8px; padding: 7px 10px 7px 14px; background: var(--bg); border-radius: 30px; box-shadow: var(--sh); z-index: 9; white-space: nowrap; border: 2px solid #1565c0; }
+#planbar button { border-radius: 20px; padding: 6px 12px; }
+#planbar button.ok { background: var(--acc); color: #fff; border-color: var(--acc); font-weight: 600; }

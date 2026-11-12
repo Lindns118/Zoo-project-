@@ -89,7 +89,7 @@
     }
     return true;
   }
-  Z.canMove = (o, x, y) => { const [w, h] = sizeOf(o); return rectFree(o, x, y, w, h); };
+  Z.canMove = (o, x, y) => { if (o.kind === 'bld' && Z.S.ground[idx(o.x, o.y)] === 1) return Z.inb(x, y) && Z.S.ground[idx(x, y)] === 1 && (!Z.occ[idx(x, y)] || Z.occ[idx(x, y)] === o) && Z.owned(x, y); const [w, h] = sizeOf(o); return rectFree(o, x, y, w, h); };
   Z.moveCost = o => Math.round((o.kind === 'encl' ? Z.enclCost(o.w, o.h, o.biome) : BL[o.type].cost) * .1);
   Z.moveObj = function (o, x, y) {
     if (x === o.x && y === o.y) return false;
@@ -233,6 +233,7 @@
     const S = Z.S, sc = Z.SCENARIOS.find(s => s.id === id); if (!sc) return;
     S.scn = id; S.rules = sc.rules || {}; S.money = 1e6; Z.progressScenario(S, sc.lvl || 1);
     if (sc.setup === 'ruin') {
+      for (let y = 18; y < 35; y++) for (let x = 14; x < 45; x++) if (S.ground[idx(x, y)] > 1) S.ground[idx(x, y)] = 0;
       for (let y = 26; y < H - 6; y++) Z.buildPath(28, y); for (let x = 16; x < 42; x++) Z.buildPath(x, 26);
       const mk = (x, y, w, h, b, sp, n) => { const e = Z.buildEncl(x, y, w, h, b); for (let i = 0; i < n; i++) Z.buyAnimal(e, sp, i % 2 ? 'M' : 'F', true); e.bt = 0; e.clean = 15; e.fence = 32; e.food = 45; for (const a of e.animals) { a.happy = 35; a.health = 70; a.hunger = 50; } e.animals[0].sick = 1; };
       mk(17, 20, 6, 6, 'savane', 'zebre', 5); mk(25, 21, 5, 5, 'foret', 'singe', 6); mk(32, 20, 7, 6, 'aquatique', 'flamant', 5);

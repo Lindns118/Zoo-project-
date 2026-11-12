@@ -21,22 +21,22 @@
   // ---------- Barre d'outils ----------
   const TOOLS = [
     ['select', '🖐️', 'Explorer'], ['path', '🛣️', 'Allées'], ['encl', '🚧', 'Enclos'], ['shop', '🏪', 'Services'], ['ride', '🎡', 'Attractions'], ['decor', '🌳', 'Décor'], ['move', '↔️', 'Déplacer'], ['demo', '🧨', 'Démolir'],
-    ['|'], ['p:staff', '👷', 'Personnel'], ['p:animals', '🦁', 'Animaux'], ['p:visitors', '🧑‍🤝‍🧑', 'Visiteurs'], ['p:fin', '💶', 'Finances'], ['p:research', '🔬', 'Recherche'], ['p:prog', '📈', 'Progression'], ['p:stats', '📊', 'Stats'], ['p:goals', '🎯', 'Missions'], ['view', '👁️', 'Vues'], ['p:menu', '⚙️', 'Menu'],
+    ['|'], ['p:staff', '👷', 'Personnel'], ['p:animals', '🦁', 'Animaux'], ['p:visitors', '🧑‍🤝‍🧑', 'Visiteurs'], ['p:fin', '💶', 'Finances'], ['p:research', '🔬', 'Recherche'], ['p:prog', '📈', 'Progression'], ['p:stats', '📊', 'Stats'], ['p:goals', '🎯', 'Missions'], ['p:world', '🌍', 'Monde'], ['view', '👁️', 'Vues'], ['p:menu', '⚙️', 'Menu'],
   ];
   function renderTools() {
     $('#tools').innerHTML = TOOLS.map(t => t[0] === '|' ? '<span class="sep"></span>' :
       `<button class="tool ${ui.tool === t[0] || (t[0] === 'view' && ui.view) || (ui.panel && 'p:' + ui.panel === t[0]) ? 'on' : ''}" data-a="tool" data-id="${t[0]}"><b>${t[1]}</b><span>${t[2]}</span></button>`).join('');
     let sub = '';
-    if (ui.tool === 'encl') sub = Object.keys(BIO).filter(k => !Z.S.rules.biomes || Z.S.rules.biomes.includes(k)).map(k => !Z.biomeUnlocked(k) ? `<button class="chip locked" disabled>🔒 ${BIO[k].name}<small>${Z.lockLabel(BIO[k])}</small></button>` : `<button class="chip ${ui.arg === k ? 'on' : ''}" data-a="arg" data-id="${k}">${BIO[k].icon} ${BIO[k].name}<small>${BIO[k].cost} €/case</small></button>`).join('');
+    if (ui.tool === 'encl') sub = Object.keys(BIO).filter(k => !Z.S.rules.biomes || Z.S.rules.biomes.includes(k)).map(k => !Z.biomeUnlocked(k) ? `<button class="chip locked" disabled>🔒 ${BIO[k].name}<small>${Z.lockLabel(BIO[k])}</small></button>` : `<button class="chip ${ui.arg === k ? 'on' : ''}" data-a="arg" data-id="${k}">${BIO[k].icon} ${BIO[k].name}<small>${Math.round(BIO[k].cost * Z.biomeMult(k))} €/case</small></button>`).join('');
     if (ui.tool === 'shop' || ui.tool === 'decor' || ui.tool === 'ride') sub = Object.keys(BL).filter(k => BL[k].cat === ui.tool).map(k => !Z.bldUnlocked(k) ? `<button class="chip locked" disabled>🔒 ${BL[k].name}<small>${Z.lockLabel(BL[k])}</small></button>` : `<button class="chip ${ui.arg === k ? 'on' : ''}" data-a="arg" data-id="${k}" title="${esc(BL[k].desc)}">${BL[k].icon} ${BL[k].name}<small>${fmt(BL[k].cost)}</small></button>`).join('');
     $('#sub').innerHTML = sub; $('#sub').style.display = sub ? 'flex' : 'none';
     const hints = {
-      select: '', path: 'Glissez pour tracer une allée (12 €/case). Les visiteurs et le personnel ne marchent que sur les allées.',
-      encl: 'Choisissez un habitat puis glissez pour dessiner l’enclos sur votre terrain. Une allée doit le longer. Le chantier dure plusieurs heures.',
-      shop: BL[ui.arg] ? BL[ui.arg].desc + ' À placer le long d’une allée.' : '', decor: BL[ui.arg] ? BL[ui.arg].desc : '',
+      select: '', path: 'Glissez pour tracer une allée (12 €/case), puis validez. Appui long : déplacer la carte.',
+      encl: 'Glissez pour dessiner l’enclos, puis validez. Une allée doit le longer. Appui long : déplacer la carte.',
+      shop: BL[ui.arg] ? BL[ui.arg].desc + ' Touchez pour ajouter au plan, puis validez.' : '', decor: BL[ui.arg] ? BL[ui.arg].desc : '',
       move: 'Glissez un bâtiment ou un enclos (avec ses animaux) vers son nouvel emplacement. Coût : 10 % de son prix.',
       ride: BL[ui.arg] ? BL[ui.arg].desc + ' Nécessite un opérateur et une allée.' : 'Aucune attraction disponible : lancez un projet dans 🔬 Recherche.',
-      demo: 'Touchez une allée, un bâtiment ou un enclos vide pour le démolir (30 % remboursés).',
+      demo: 'Touchez une allée, un bâtiment, un enclos vide (30 % remboursés) ou un arbre à défricher (120 €).',
     };
     setHint(hints[ui.tool] || (ui.view ? 'Vue : ' + VIEWS[ui.view] + ' — touchez 👁️ pour changer' : ''));
   }
@@ -228,6 +228,18 @@
       }
       return { title: '🔬 Recherche', html: h };
     },
+    world() {
+      const S = Z.S; let h = '<p class="muted">Chaque région a son climat, son relief, son public et ses habitats naturels, moins chers à construire. Chaque carte garde sa propre sauvegarde : vous pouvez y revenir à tout moment. Les régions s’ouvrent quand l’un de vos zoos atteint le niveau requis.</p>' + row('Meilleur niveau atteint', '⭐ ' + Z.bestLevel());
+      h += Z.WORLD.map(m => {
+        const info = Z.slotInfo(m.id), ok = Z.mapUnlocked(m), here = Z.slot === m.id, w = m.weather;
+        const mods = Object.keys(m.bm).filter(k => BIO[k] && m.bm[k] !== 1).map(k => `<span class="${m.bm[k] < 1 ? 'good' : 'bad'}">${BIO[k].icon} ${m.bm[k] < 1 ? '−' : '+'}${Math.round(Math.abs(1 - m.bm[k]) * 100)} %</span>`).join(' ');
+        return `<div class="card ${ok ? (here ? 'cur' : '') : 'locked'}"><div class="ctitle"><b>${m.icon} ${m.name}, ${m.country}</b><b>${ok ? (here ? 'En cours' : '') : '🔒 Niv. ' + m.req}</b></div><p class="muted">${m.desc}</p>
+          <p class="muted">☀️ ${Math.round(w[0] * 100)} % · ${m.snow ? '🌨️' : '🌧️'} ${Math.round(w[2] * 100)} % · Affluence ×${String(m.demand).replace('.', ',')} · Budget des visiteurs ×${String(m.wealth).replace('.', ',')} · Capital ${fmt(m.money)}</p><p>${mods}</p>
+          ${info ? `<p>💾 Jour ${info.day} · niveau ${info.level} · ${info.animals} animaux · ${fmt(info.money)}</p>` : ''}
+          ${ok ? `<div class="btns">${here ? '' : `<button data-a="map" data-id="${m.id}">${info ? '▶ Continuer' : '▶ Jouer cette carte'}</button>`}${info ? `<button class="danger" data-a="map" data-id="${m.id}" data-fresh="1">Recommencer à zéro</button>` : ''}</div>` : ''}</div>`;
+      }).join('');
+      return { title: '🌍 Cartes du monde', html: h };
+    },
     stats() {
       const S = Z.S, hs = S.fin.history.filter(x => x.money != null), kpi = (l, v) => `<div><small>${l}</small><b>${v}</b></div>`;
       let h = '<div class="kpis">' + kpi('Valeur du zoo', fmt(Z.zooValue())) + kpi('Réputation', Z.rep().toFixed(1).replace('.', ',') + ' ★') + kpi('Animaux', Z.animalCount()) + kpi('Espèces', Z.speciesCount()) + kpi('Record par jour', S.stats.bestDay) + kpi('Pic simultané', S.stats.peak) + kpi('Visiteurs cumulés', S.stats.visitors) + kpi('Naissances', S.stats.births) + kpi('Décès', S.stats.deaths) + kpi('Missions réussies', S.stats.missions) + '</div>';
@@ -257,7 +269,7 @@
         const c = Z.campaign(), med = { or: '🥇', argent: '🥈', bronze: '🥉' };
         h += '<p class="muted">Cinq scénarios à objectifs et durée limitée. Chaque réussite débloque le suivant et ajoute 5 000 € au capital de départ du mode libre. Lancer un scénario remplace la partie en cours.</p>';
         h += Z.SCENARIOS.map((s, i) => { const ok = Z.scnUnlocked(i); return `<div class="card ${ok ? (S.scn === s.id ? 'cur' : '') : 'locked'}"><div class="ctitle"><b>${s.icon} ${i + 1}. ${s.name}</b><b>${med[c[s.id]] || (ok ? '' : '🔒')}</b></div><p class="muted">${s.desc}</p><p>${s.goals.map(g => '• ' + g.t).join('<br>')}</p><p class="muted">Capital : ${fmt(s.money)} · Délai : ${s.days} jours</p>${ok ? `<div class="btns"><button data-a="scn" data-id="${s.id}">${S.scn === s.id ? 'Recommencer' : 'Jouer ce scénario'}</button></div>` : ''}</div>`; }).join('');
-        h += `<div class="card"><div class="ctitle"><b>🌍 Mode libre</b></div><p class="muted">Sans limite de temps. Capital de départ : ${fmt(25000 + Z.campaignBonus())}.</p><div class="btns"><button data-a="scn" data-id="">Nouvelle partie libre</button></div></div>`;
+        h += `<div class="card"><div class="ctitle"><b>🌍 Mode libre</b></div><p class="muted">Sans limite de temps, sur la carte du monde de votre choix. Bonus de capital gagné en campagne : ${fmt(Z.campaignBonus())}.</p><div class="btns"><button data-a="tool" data-id="p:world">🌍 Choisir une carte</button></div></div>`;
       }
       return { title: '🎯 Missions & campagne', html: h };
     },
@@ -279,6 +291,7 @@
     hire: d => Z.hire(d.k), fire: d => { Z.fire(+d.id); if (ui.panel === 'staffm') openPanel('staff'); },
     goto: d => { const o = ent(+d.id); if (!o) return; if (o.kind === 'encl') { Z.focus(o.x + o.w / 2, o.y + o.h / 2); openPanel('encl', o.id); } else { Z.focus(o.x, o.y); openPanel('staffm', o.id); } },
     tab: d => { ui.tab[d.p] = d.id; },
+    map: d => { const m = Z.WORLD.find(x => x.id === d.id); if (d.fresh) modal('Recommencer ' + m.name + ' ?', '<p>La sauvegarde de cette carte sera effacée.</p>', [['Annuler'], ['Recommencer', () => Z.playMap(d.id, true), 'danger']]); else Z.playMap(d.id, false); },
     rstart: d => Z.startResearch(d.k), setprice: d => { Z.S.ticket = +d.v; },
     land: d => { Z.buyParcel(+d.id); },
     rename: () => { const e = ent(ui.parg), n = prompt('Nom de l’enclos :', e.name); if (n && n.trim()) e.name = n.trim().slice(0, 40); },
@@ -322,7 +335,7 @@
     $('#modal').style.display = 'flex';
   }
   Z.modal = modal;
-  Z.onRestart = () => { closePanel(); ui.tool = 'select'; renderTools(); updateTop(); const sc = Z.scenario(); if (sc) modal(sc.icon + ' ' + sc.name, `<p>${sc.desc}</p><p><b>Objectifs à atteindre en ${sc.days} jours :</b><br>${sc.goals.map(g => '• ' + g.t).join('<br>')}</p>`, [['C’est parti !', () => openPanel('goals', null, 'obj')]]); };
+  Z.onRestart = () => { closePanel(); ui.tool = 'select'; plan.length = 0; renderPlan(); Z.focus(Z.EX, H - 8); renderTools(); updateTop(); const sc = Z.scenario(); if (sc) modal(sc.icon + ' ' + sc.name, `<p>${sc.desc}</p><p><b>Objectifs à atteindre en ${sc.days} jours :</b><br>${sc.goals.map(g => '• ' + g.t).join('<br>')}</p>`, [['C’est parti !', () => openPanel('goals', null, 'obj')]]); };
   function showHelp() {
     modal('🦁 Bienvenue dans Zoo Project', `<p>Vous dirigez un zoo. Faites-en un lieu où les animaux vivent bien et où les visiteurs se pressent.</p><ol>
       <li><b>🚧 Enclos</b> — choisissez un habitat et dessinez un enclos. Chaque espèce exige son habitat, assez d’espace et un groupe minimum.</li>
@@ -335,7 +348,7 @@
       <li><b>📈 Progression</b> — votre zoo gagne de l’expérience et monte de niveau (15 niveaux) : nouveaux habitats, espèces, bâtiments, employés et terrains. Les chantiers durent plusieurs heures et les animaux commandés sont livrés le lendemain.</li>
       <li><b>↔️ Déplacer</b> — glissez un enclos ou un bâtiment pour le déplacer ; agrandissez un enclos depuis sa fiche.</li>
       <li><b>🎯 Missions</b> — acceptez des missions, suivez vos objectifs et lancez la campagne de 5 scénarios. <b>📊 Stats</b> et <b>👁️ Vues</b> vous aident à piloter.</li></ol>
-      <p class="muted">Souris : glisser pour se déplacer, molette pour zoomer. Tactile : un doigt pour agir, deux pour se déplacer et zoomer. Le zoo ouvre de 9 h à 19 h ; un an pour les animaux = 10 jours.</p>`, [['C’est parti !']]);
+      <p class="muted">Construction : vos tracés s’ajoutent à un plan ; rien n’est payé tant que vous n’avez pas touché ✅ Valider. Appui long puis glisser : déplacer la carte pendant une construction, ou saisir un bâtiment en mode Explorer. Molette ou deux doigts : zoom. Le zoo ouvre de 9 h à 19 h ; un an pour les animaux = 10 jours.</p>`, [['C’est parti !']]);
   }
 
   // ---------- Barre du haut ----------
@@ -353,34 +366,78 @@
 
   // ---------- Carte : souris et tactile ----------
   const pts = new Map(); let drag = null, pinch = null;
+  const plan = Z.plan = [];
+  const isBld = () => ui.tool === 'shop' || ui.tool === 'decor' || ui.tool === 'ride';
+  const overlap = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+  const buzz = () => { try { if (navigator.vibrate) navigator.vibrate(15); } catch (e) { } };
+  // Un emplacement est libre s'il l'est sur la carte ET dans le plan en attente de validation
+  function planFree(x, y, w, h, type) {
+    const r = { x, y, w, h };
+    if (type && BL[type].onPath) {
+      if (!Z.inb(x, y) || !Z.owned(x, y) || (x === Z.EX && y >= H - 2)) return false; const t = Z.idx(x, y);
+      const onPath = (Z.S.ground[t] === 1 && !Z.occ[t]) || plan.some(p => p.k === 'path' && p.x === x && p.y === y);
+      return onPath && !plan.some(p => p.k === 'bld' && overlap(p, r));
+    }
+    return Z.freeRect(x, y, w, h) && !plan.some(p => overlap(p, r));
+  }
+  const planCost = () => plan.reduce((s, p) => s + p.cost, 0);
+  function renderPlan() {
+    const el = $('#planbar'); if (!plan.length) { el.style.display = 'none'; return; }
+    const c = planCost(), ok = Z.S.money >= c;
+    el.innerHTML = `<span>📐 <b>${plan.length}</b> élément${plan.length > 1 ? 's' : ''} · <b class="${ok ? '' : 'bad'}">${fmt(c)}</b></span><button class="ok" data-a="planok">✅ Valider</button><button data-a="planundo" title="Retirer le dernier">↩️</button><button data-a="plancancel">✖ Annuler</button>`;
+    el.style.display = 'flex';
+  }
+  function planAdd(it) { plan.push(it); renderPlan(); }
+  function planPath(x, y) { if (planFree(x, y, 1, 1)) planAdd({ k: 'path', x, y, w: 1, h: 1, cost: 12 }); }
+  function planCommit() {
+    const c = planCost(); if (Z.S.money < c) return Z.notify('Fonds insuffisants pour ce plan (' + fmt(c) + ')', 'bad');
+    let last = null;
+    for (const p of plan.splice(0)) { if (p.k === 'path') Z.buildPath(p.x, p.y); else if (p.k === 'encl') last = Z.buildEncl(p.x, p.y, p.w, p.h, p.biome) || last; else Z.place(p.type, p.x, p.y); }
+    renderPlan(); if (last) { setTool('select'); openPanel('encl', last.id); }
+  }
+  Object.assign(ACT, { planok: planCommit, planundo: () => { plan.pop(); renderPlan(); }, plancancel: () => { plan.length = 0; renderPlan(); } });
   function ghostFor(tx, ty) {
-    if (ui.tool === 'shop' || ui.tool === 'decor' || ui.tool === 'ride') { if (!ui.arg) return null; const s = BL[ui.arg].size; return { x: tx, y: ty, w: s, h: s, type: ui.arg, ok: Z.freeRect(tx, ty, s, s) }; }
-    if (ui.tool === 'path') return { x: tx, y: ty, w: 1, h: 1, ok: Z.freeRect(tx, ty, 1, 1) };
+    if (isBld()) { if (!ui.arg) return null; const s = BL[ui.arg].size; return { x: tx, y: ty, w: s, h: s, type: ui.arg, ok: planFree(tx, ty, s, s, ui.arg) }; }
+    if (ui.tool === 'path') return { x: tx, y: ty, w: 1, h: 1, ok: planFree(tx, ty, 1, 1) };
     if (ui.tool === 'demo') return { x: tx, y: ty, w: 1, h: 1, ok: false };
     return null;
   }
-  function enclRect(a, b) { const x = Math.min(a.x, b.x), y = Math.min(a.y, b.y), w = Math.abs(a.x - b.x) + 1, h = Math.abs(a.y - b.y) + 1; return { x, y, w, h, ok: w >= 2 && h >= 2 && w * h >= 6 && Z.freeRect(x, y, w, h) }; }
+  function enclRect(a, b) { const x = Math.min(a.x, b.x), y = Math.min(a.y, b.y), w = Math.abs(a.x - b.x) + 1, h = Math.abs(a.y - b.y) + 1; return { x, y, w, h, ok: w >= 2 && h >= 2 && w * h >= 6 && planFree(x, y, w, h) }; }
   function moveGhost(d, t) { const o = d.mo, [w, h] = Z.sizeOf(o), x = o.x + t.x - d.start.x, y = o.y + t.y - d.start.y; return { x, y, w, h, type: o.kind === 'bld' ? o.type : null, ok: Z.canMove(o, x, y) }; }
+  function pathTo(d, t) { let x = d.last.x, y = d.last.y, n = 0; while ((x !== t.x || y !== t.y) && n++ < 200) { if (x !== t.x && Math.abs(t.x - x) >= Math.abs(t.y - y)) x += Math.sign(t.x - x); else y += Math.sign(t.y - y); planPath(x, y); } d.last = t; }
   function drawMini() {
     const m = $('#mini'); if (!m || !m.clientWidth) return;
-    const c = m.getContext('2d'), sx = m.width / (W * T), sy = m.height / (H * T); c.drawImage(Z.groundCanvas, 0, 0, m.width, m.height);
-    for (const p of Z.PARCELS) if (!Z.S.land[p.id]) { c.fillStyle = 'rgba(10,20,5,.5)'; c.fillRect(p.x * T * sx, p.y * T * sy, p.w * T * sx, p.h * T * sy); }
-    c.fillStyle = '#fff'; for (const v of Z.S.visitors) c.fillRect(v.x * T * sx - 1, v.y * T * sy - 1, 2, 2);
-    const r = Z.viewRect(); c.strokeStyle = '#fff'; c.lineWidth = 2; c.strokeRect(r.x * sx, r.y * sy, r.w * sx, r.h * sy);
+    const c = m.getContext('2d'), gs = Z.groundSize, s = m.width / gs.w; c.clearRect(0, 0, m.width, m.height); c.drawImage(Z.groundCanvas, 0, 0, m.width, m.height);
+    const gp = (x, y) => { const p = Z.groundPos(x, y); return [p.x * s, p.y * s]; };
+    for (const p of Z.PARCELS) if (!Z.S.land[p.id]) { c.fillStyle = 'rgba(10,20,5,.5)'; c.beginPath(); c.moveTo(...gp(p.x, p.y)); c.lineTo(...gp(p.x + p.w, p.y)); c.lineTo(...gp(p.x + p.w, p.y + p.h)); c.lineTo(...gp(p.x, p.y + p.h)); c.fill(); }
+    c.fillStyle = '#fff'; for (const v of Z.S.visitors) { const q = gp(v.x, v.y); c.fillRect(q[0] - 1, q[1] - 1, 2, 2); }
+    const r = Z.viewRect(); c.strokeStyle = '#fff'; c.lineWidth = 2; c.strokeRect(r.x * s, r.y * s, r.w * s, r.h * s);
   }
   function clickSelect(sx, sy) {
-    const w = Z.toWorld(sx, sy), wx = w.x / T, wy = w.y / T, S = Z.S; let best = null, bd = .9;
-    for (const a of S.staff.filter(s => !Z.STAFF[s.type].desk).concat(S.visitors)) { const d = Math.hypot(a.x + a.ox - wx, a.y + a.oy - wy - .1); if (d < bd) { bd = d; best = a; } }
+    const f = Z.toTileF(sx, sy), S = Z.S; let best = null, bd = .9;
+    for (const a of S.staff.filter(s => !Z.STAFF[s.type].desk).concat(S.visitors)) { const d = Math.hypot(a.x + a.ox - f.x - .3, a.y + a.oy - f.y - .3); if (d < bd) { bd = d; best = a; } }
     if (best) return openPanel(best.kind === 'staff' ? 'staffm' : 'vis', best.id);
-    const tx = Math.floor(wx), ty = Math.floor(wy), o = Z.inb(tx, ty) ? Z.occ[Z.idx(tx, ty)] : null;
+    const at = (x, y) => (Z.inb(Math.floor(x), Math.floor(y)) ? Z.occ[Z.idx(Math.floor(x), Math.floor(y))] : null);
+    let o = at(f.x, f.y);
+    if (!o || o.kind !== 'bld') for (const k of [.5, 1]) { const b = at(f.x + k, f.y + k); if (b && b.kind === 'bld' && !BL[b.type].onPath) { o = b; break; } }
+    const tx = Math.floor(f.x), ty = Math.floor(f.y);
     if (o) openPanel(o.kind === 'encl' ? 'encl' : 'bld', o.id); else if (Z.inb(tx, ty) && !Z.owned(tx, ty)) openPanel('land', Z.parcelAt(tx, ty).id); else if (ui.sel) closePanel();
   }
   function down(ev) {
     cvEl.setPointerCapture(ev.pointerId); pts.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
-    if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 }; drag = null; ui.ghost = null; return; }
-    const t = Z.toTile(ev.clientX, ev.clientY), mo = ui.tool === 'move' && ev.button === 0 && Z.inb(t.x, t.y) ? Z.occ[Z.idx(t.x, t.y)] : null, pan = ev.button === 1 || ev.button === 2 || ui.tool === 'select' || (ui.tool === 'move' && !mo);
-    drag = { id: ev.pointerId, sx: ev.clientX, sy: ev.clientY, lx: ev.clientX, ly: ev.clientY, pan, moved: false, start: t, mo };
-    if (!pan) { if (mo) ui.ghost = moveGhost(drag, t); else if (ui.tool === 'path') Z.buildPath(t.x, t.y); else if (ui.tool === 'encl') ui.ghost = enclRect(t, t); else ui.ghost = ghostFor(t.x, t.y); }
+    if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 }; if (drag) clearTimeout(drag.timer); drag = null; ui.ghost = null; return; }
+    const t = Z.toTile(ev.clientX, ev.clientY), o = Z.inb(t.x, t.y) ? Z.occ[Z.idx(t.x, t.y)] : null;
+    const d = drag = { id: ev.pointerId, sx: ev.clientX, sy: ev.clientY, lx: ev.clientX, ly: ev.clientY, start: t, last: t, moved: false, mode: 'pan', mo: null };
+    if (ev.button === 1 || ev.button === 2) return;
+    if (ui.tool === 'select') {
+      // appui long sur un objet : on le saisit pour le déplacer
+      if (o) d.timer = setTimeout(() => { if (drag === d && !d.moved) { d.mode = 'obj'; d.mo = o; ui.ghost = moveGhost(d, d.start); buzz(); setHint('Glissez pour déplacer — coût : ' + fmt(Z.moveCost(o))); } }, 400);
+    } else if (ui.tool === 'move') { if (o) { d.mode = 'obj'; d.mo = o; ui.ghost = moveGhost(d, t); } }
+    else {
+      // outil de construction : appui long = déplacer la carte au lieu de construire
+      d.mode = 'build'; ui.ghost = ui.tool === 'encl' ? enclRect(t, t) : ghostFor(t.x, t.y);
+      d.timer = setTimeout(() => { if (drag === d && !d.moved) { d.mode = 'pan'; ui.ghost = null; buzz(); setHint('🖐️ Déplacement de la carte'); } }, 400);
+    }
   }
   function move(ev) {
     const p = pts.get(ev.pointerId); if (p) { p.x = ev.clientX; p.y = ev.clientY; }
@@ -389,28 +446,37 @@
       zoomAt(mx, my, d / pinch.d); Z.cam.x -= (mx - pinch.mx) / Z.cam.z; Z.cam.y -= (my - pinch.my) / Z.cam.z; Z.clampCam();
       pinch = { d, mx, my }; return;
     }
-    const t = Z.toTile(ev.clientX, ev.clientY);
-    if (!drag || drag.id !== ev.pointerId) { if (ev.pointerType === 'mouse' && ui.tool !== 'select' && ui.tool !== 'encl') ui.ghost = ghostFor(t.x, t.y); return; }
-    if (Math.hypot(ev.clientX - drag.sx, ev.clientY - drag.sy) > 6) drag.moved = true;
-    if (drag.pan) { Z.cam.x -= (ev.clientX - drag.lx) / Z.cam.z; Z.cam.y -= (ev.clientY - drag.ly) / Z.cam.z; Z.clampCam(); }
-    else if (drag.mo) { ui.ghost = moveGhost(drag, t); setHint('Déplacement : ' + fmt(Z.moveCost(drag.mo))); }
-    else if (ui.tool === 'path') Z.buildPath(t.x, t.y);
-    else if (ui.tool === 'encl') { ui.ghost = enclRect(drag.start, t); setHint(`${ui.ghost.w}×${ui.ghost.h} = ${ui.ghost.w * ui.ghost.h} cases — ${fmt(Z.enclCost(ui.ghost.w, ui.ghost.h, ui.arg))}`); }
-    else ui.ghost = ghostFor(t.x, t.y);
-    drag.lx = ev.clientX; drag.ly = ev.clientY;
+    const t = Z.toTile(ev.clientX, ev.clientY), d = drag;
+    if (!d || d.id !== ev.pointerId) { if (ev.pointerType === 'mouse' && ui.tool !== 'select' && ui.tool !== 'encl' && ui.tool !== 'move') ui.ghost = ghostFor(t.x, t.y); return; }
+    if (!d.moved && Math.hypot(ev.clientX - d.sx, ev.clientY - d.sy) > 6) { d.moved = true; if (d.mode === 'build' && ui.tool === 'path') planPath(d.start.x, d.start.y); }
+    if (d.mode === 'pan') { Z.cam.x -= (ev.clientX - d.lx) / Z.cam.z; Z.cam.y -= (ev.clientY - d.ly) / Z.cam.z; Z.clampCam(); }
+    else if (d.mode === 'obj') ui.ghost = moveGhost(d, t);
+    else if (d.moved) {
+      if (ui.tool === 'path') { pathTo(d, t); ui.ghost = null; }
+      else if (ui.tool === 'encl') { ui.ghost = enclRect(d.start, t); setHint(`${ui.ghost.w}×${ui.ghost.h} = ${ui.ghost.w * ui.ghost.h} cases — ${fmt(Z.enclCost(ui.ghost.w, ui.ghost.h, ui.arg))}`); }
+      else ui.ghost = ghostFor(t.x, t.y);
+    }
+    d.lx = ev.clientX; d.ly = ev.clientY;
   }
   function up(ev) {
     pts.delete(ev.pointerId); if (pts.size < 2) pinch = null;
-    if (!drag || drag.id !== ev.pointerId) return; const d = drag; drag = null;
-    const t = Z.toTile(ev.clientX, ev.clientY);
-    if (d.pan) { if (!d.moved && ev.button === 0) { if (ui.tool === 'select') clickSelect(ev.clientX, ev.clientY); } }
-    else if (d.mo) { const gh = ui.ghost; ui.ghost = null; if (gh && d.moved) Z.moveObj(d.mo, gh.x, gh.y); renderTools(); }
-    else if (ui.tool === 'encl') { const r = ui.ghost; ui.ghost = null; if (r && r.w * r.h > 1) { const e = Z.buildEncl(r.x, r.y, r.w, r.h, ui.arg); if (e) { setTool('select'); openPanel('encl', e.id); } } renderTools(); }
-    else if (ui.tool === 'shop' || ui.tool === 'decor' || ui.tool === 'ride') { if (ui.arg) Z.place(ui.arg, t.x, t.y); if (ev.pointerType !== 'mouse') ui.ghost = null; }
-    else if (ui.tool === 'demo') { Z.demolish(t.x, t.y); if (ui.sel && !ent(ui.parg)) closePanel(); ui.ghost = null; }
+    if (!drag || drag.id !== ev.pointerId) return; const d = drag; drag = null; clearTimeout(d.timer);
+    const t = Z.toTile(ev.clientX, ev.clientY), touch = ev.pointerType !== 'mouse';
+    if (d.mode === 'pan') { if (!d.moved && ev.button === 0 && ui.tool === 'select') clickSelect(ev.clientX, ev.clientY); else if (ui.tool !== 'select') renderTools(); }
+    else if (d.mode === 'obj') { const gh = ui.ghost; ui.ghost = null; if (gh && d.moved) Z.moveObj(d.mo, gh.x, gh.y); else if (ui.tool === 'select') clickSelect(ev.clientX, ev.clientY); renderTools(); }
+    else if (ui.tool === 'path') { if (!d.moved) planPath(t.x, t.y); if (touch) ui.ghost = null; }
+    else if (ui.tool === 'encl') {
+      const r = ui.ghost; ui.ghost = null;
+      if (r && r.ok) planAdd({ k: 'encl', x: r.x, y: r.y, w: r.w, h: r.h, biome: ui.arg, cost: Z.enclCost(r.w, r.h, ui.arg) });
+      else if (r && d.moved) Z.notify(r.w * r.h < 6 || r.w < 2 || r.h < 2 ? 'Enclos trop petit (6 cases minimum)' : 'Emplacement occupé ou hors de votre terrain', 'bad');
+      renderTools();
+    } else if (isBld()) {
+      if (ui.arg) { const s = BL[ui.arg].size; if (planFree(t.x, t.y, s, s, ui.arg)) planAdd({ k: 'bld', type: ui.arg, x: t.x, y: t.y, w: s, h: s, cost: BL[ui.arg].cost }); else Z.notify(BL[ui.arg].onPath ? 'À poser sur une allée libre' : 'Emplacement occupé ou hors de votre terrain', 'bad'); }
+      if (touch) ui.ghost = null;
+    } else if (ui.tool === 'demo') { Z.demolish(t.x, t.y); if (ui.sel && !ent(ui.parg)) closePanel(); ui.ghost = null; }
     updateTop();
   }
-  function zoomAt(sx, sy, f) { const c = Z.cam, w = Z.toWorld(sx, sy); c.z = Z.clamp(c.z * f, .35, 2.6); const w2 = Z.toWorld(sx, sy); c.x += w.x - w2.x; c.y += w.y - w2.y; Z.clampCam(); }
+  function zoomAt(sx, sy, f) { const c = Z.cam, w = Z.toWorld(sx, sy); c.z = Z.clamp(c.z * f, .3, 2.6); const w2 = Z.toWorld(sx, sy); c.x += w.x - w2.x; c.y += w.y - w2.y; Z.clampCam(); }
   let cvEl;
 
   // ---------- Démarrage ----------
@@ -425,12 +491,12 @@
     cvEl.addEventListener('wheel', ev => { ev.preventDefault(); zoomAt(ev.clientX, ev.clientY, ev.deltaY < 0 ? 1.12 : 1 / 1.12); }, { passive: false });
     const pn = $('#panel'); pn.addEventListener('pointerdown', () => panelBusy = true);
     window.addEventListener('pointerup', () => setTimeout(() => panelBusy = false, 80));
-    const mini = $('#mini'), mgo = ev => { const r = mini.getBoundingClientRect(); Z.focus((ev.clientX - r.left) / r.width * W, (ev.clientY - r.top) / r.height * H); };
+    const mini = $('#mini'), mgo = ev => { const r = mini.getBoundingClientRect(); Z.camToGround((ev.clientX - r.left) / r.width * Z.groundSize.w, (ev.clientY - r.top) / r.height * Z.groundSize.h); };
     mini.addEventListener('pointerdown', ev => { mini.setPointerCapture(ev.pointerId); mgo(ev); }); mini.addEventListener('pointermove', ev => { if (ev.buttons) mgo(ev); });
     const keys = {};
     window.addEventListener('keydown', ev => {
       if (ev.target.tagName === 'INPUT') return; keys[ev.key.toLowerCase()] = true;
-      if (ev.key === 'Escape') { if (ui.tool !== 'select') setTool('select'); else closePanel(); }
+      if (ev.key === 'Escape') { if (plan.length) { plan.length = 0; renderPlan(); } else if (ui.tool !== 'select') setTool('select'); else closePanel(); }
       if (ev.key === ' ') { ev.preventDefault(); Z.S.speed = Z.S.speed ? 0 : 1; updateTop(); }
       if (['1', '2', '3'].includes(ev.key)) { Z.S.speed = [1, 2, 4][+ev.key - 1]; updateTop(); }
     });
