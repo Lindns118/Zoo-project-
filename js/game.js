@@ -163,7 +163,7 @@
   Z.happyTarget = function (e, a) {
     const sp = SP[a.sp], n = e.animals.length; let h = 76 + Z.climateBonus(e.biome);
     const ratio = e.w * e.h / (n * sp.space);
-    if (ratio < 1) h -= (1 - ratio) * 70 + (e.crowd || 0) * 6; else if (ratio < 1.25) h -= (1.25 - ratio) * 24; else if (ratio >= 1.5) h += 4;
+    if (1 / ratio >= 1.05 - 1e-9) h -= (1 / ratio - 1.05) * 110 + 8 + (e.crowd || 0) * 6; else if (ratio >= 1.5) h += 4;
     if (n < sp.grp) h -= 18;
     if (a.hunger < 40) h -= (40 - a.hunger) * .9;
     if (e.clean < 50) h -= (50 - e.clean) * .6;
@@ -176,7 +176,7 @@
     if (!e.vp.length) r.push('Aucune allée ne relie cet enclos à l’entrée');
     if (n) {
       const sp = SP[e.animals[0].sp];
-      if (e.w * e.h < n * sp.space) r.push('Trop à l’étroit : ' + (n * sp.space) + ' cases nécessaires (' + (e.w * e.h) + ' disponibles)');
+      if (e.w * e.h * 1.05 < n * sp.space) r.push('Trop à l’étroit : ' + (n * sp.space) + ' cases nécessaires (' + (e.w * e.h) + ' disponibles)');
       if (n < sp.grp) r.push('Groupe trop petit : les ' + sp.pl + ' vivent à ' + sp.grp + ' minimum');
       if (e.food <= 0) r.push('Mangeoire vide !'); else if (e.food < 25) r.push('Mangeoire presque vide');
       if (e.clean < 40) r.push('Enclos sale');
@@ -320,7 +320,7 @@
         }
       }
       const ok = a => a.age >= sp.mat && a.age < sp.life * .85 && a.happy > 65 && a.health > 70 && !a.sick;
-      if (Z.occupancy(e, 1) <= Z.BREED_MAX + 1e-9 && e.animals.some(a => a.sex === 'M' && ok(a))) {
+      if (Z.occupancy(e) < Z.BREED_MAX - 1e-9 && e.animals.some(a => a.sex === 'M' && ok(a))) {
         for (const a of e.animals) if (a.sex === 'F' && !a.preg && ok(a) && Math.random() < sp.fert * Z.rmod('fert')) { a.preg = sp.gest; break; }
       }
     }

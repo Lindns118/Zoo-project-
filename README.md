@@ -8,7 +8,7 @@ Jeu de gestion de zoo réaliste, jouable directement dans le navigateur (aucune 
 
 - **Animaux et bâtiments dessinés** : 41 espèces dessinées et animées (taille selon l'âge, mâles et femelles différents : crinière, bois, cornes, roue du paon…), bâtiments à toit en pente, attractions animées.
 - **Fiche animal** : un clic sur un animal ouvre sa fiche (portrait, âge, état, origine, vente, transfert).
-- **Surpopulation** : occupation affichée au-dessus de chaque enclos ; au-delà de 80 % plus de naissances, au-delà de 100 % animaux malheureux, puis grève de la faim et bagarres signalées par une fenêtre d'alerte illustrée.
+- **Surpopulation** : occupation affichée au-dessus de chaque enclos ; plus de naissances à 95 %, animaux malheureux à 105 %, refus de manger à 120 %, bagarres à 130 %, signalées par une fenêtre d'alerte illustrée.
 - **Marché de vente** : d'autres zoos achètent vos adultes au-dessus du prix ordinaire.
 - **Vue isométrique** : sol en losanges, bâtiments en volume, clôtures et personnages triés en profondeur.
 - **Cartes du monde** : six régions (France, Kenya, Canada, Brésil, Australie, Japon) avec leur relief, leur climat, leur public et leurs habitats naturels moins chers ; une sauvegarde par carte.

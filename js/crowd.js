@@ -1,13 +1,14 @@
 // Zoo Project — surpopulation des enclos : arrêt des naissances, refus de s'alimenter, bagarres
 (function () {
   const SP = Z.SPECIES, fmt = Z.fmt, pick = Z.pick;
-  Z.BREED_MAX = .8;   // au-delà de 80 % d'occupation, les animaux ne se reproduisent plus
+  // Seuils d'occupation : plus de naissances, animaux malheureux, refus de manger, bagarres
+  Z.BREED_MAX = .95; Z.CROWD = [1.05, 1.2, 1.3];
   Z.enclMax = e => { const sp = e.animals.length ? SP[e.animals[0].sp] : e.pending && e.pending.length ? SP[e.pending[0].sp] : null; return sp ? Math.max(1, Math.floor(e.w * e.h / sp.space)) : 0; };
   Z.occupancy = (e, extra) => { const sp = e.animals.length ? SP[e.animals[0].sp] : null; return sp ? (e.animals.length + (extra || 0)) * sp.space / (e.w * e.h) : 0; };
-  Z.crowdStage = e => (e.crowd >= 3 ? 3 : e.crowd >= 2 ? 2 : Z.occupancy(e) > 1 ? 1 : 0);
+  Z.crowdStage = e => { const o = Z.occupancy(e) + 1e-9; return o >= Z.CROWD[2] ? 3 : o >= Z.CROWD[1] ? 2 : o >= Z.CROWD[0] ? 1 : 0; };
   Z.crowdText = function (e) {
     const o = Z.occupancy(e), st = Z.crowdStage(e);
-    return st === 3 ? '⚔️ Surpopulation grave : les animaux se battent et refusent de manger' : st === 2 ? '🍽️ Surpopulation : les animaux refusent de s’alimenter' : st === 1 ? '😟 Enclos surpeuplé : animaux malheureux, risque de grève de la faim dans ' + (2 - (e.crowd || 0)) + ' j' : o > Z.BREED_MAX ? '⏸️ Enclos presque plein : les animaux ne se reproduisent plus' : '✅ Assez de place pour se reproduire';
+    return st === 3 ? '⚔️ 130 % ou plus : les animaux se battent et refusent de manger' : st === 2 ? '🍽️ 120 % ou plus : les animaux refusent de s’alimenter' : st === 1 ? '😟 105 % ou plus : animaux malheureux' : o >= Z.BREED_MAX - 1e-9 ? '⏸️ 95 % ou plus : les animaux ne se reproduisent plus' : '✅ Assez de place pour se reproduire';
   };
   // Image d'une bagarre : deux animaux face à face dans un nuage de poussière
   Z.fightImage = function (spk) {
@@ -26,26 +27,33 @@
     if (!Z.modal || Z.silentLevel) return;
     const sp0 = Z.S.speed || 1; Z.S.speed = 0; Z.modal(title, (img ? `<img class="portrait" src="${img}" alt="">` : '') + `<p>${text}</p><p class="muted">${e.name} : ${e.animals.length} animaux pour ${Z.enclMax(e)} places.</p>`, [['Plus tard', () => { Z.S.speed = sp0; }], ['👁️ Voir l’enclos', () => { Z.S.speed = sp0; see(e)(); }]]);
   }
+  // Le stade est recalculé chaque heure : les effets suivent immédiatement l'occupation
+  const oldH = Z.onHourly;
+  Z.onHourly = function () {
+    if (oldH) oldH();
+    for (const e of Z.S.enclosures) {
+      const st = e.animals.length ? Z.crowdStage(e) : 0, was = e.crowd || 0; e.crowd = st; if (st <= was) continue;
+      const sp = SP[e.animals[0].sp], pc = Math.round(Z.occupancy(e) * 100);
+      if (st === 1) Z.notify('😟 ' + e.name + ' est surpeuplé (' + pc + ' %) : les ' + sp.pl + ' sont malheureux.', 'warn', e);
+      else if (st === 2) { Z.notify('🍽️ Les ' + sp.pl + ' de ' + e.name + ', trop à l’étroit (' + pc + ' %), refusent de manger.', 'bad', e); popup(e, '🍽️ Grève de la faim', 'À ' + pc + ' % d’occupation, vos ' + sp.pl + ' sont stressés et ne touchent plus à leur nourriture. Au-delà de 130 %, ils se battront.'); }
+      else Z.notify('⚔️ ' + e.name + ' dépasse 130 % d’occupation : des bagarres vont éclater.', 'bad', e);
+    }
+  };
   const oldD = Z.onDaily;
   Z.onDaily = function () {
     if (oldD) oldD(); const S = Z.S;
     for (const e of S.enclosures) {
-      if (!e.animals.length || Z.occupancy(e) <= 1) { e.crowd = 0; continue; }
-      e.crowd = (e.crowd || 0) + 1; const sp = SP[e.animals[0].sp];
-      if (e.crowd === 1) Z.notify('😟 ' + e.name + ' est surpeuplé (' + e.animals.length + '/' + Z.enclMax(e) + ') : agrandissez-le, transférez ou vendez des animaux.', 'warn', e);
-      else if (e.crowd === 2) { Z.notify('🍽️ Les ' + sp.pl + ' de ' + e.name + ', trop à l’étroit, refusent de manger.', 'bad', e); popup(e, '🍽️ Grève de la faim', 'Entassés depuis deux jours, vos ' + sp.pl + ' sont stressés et ne touchent plus à leur nourriture. Sans place supplémentaire, ils vont s’affaiblir et finir par se battre.'); }
-      else if (Math.random() < .6 && e.animals.length >= 2) {
-        const a = pick(e.animals), b = pick(e.animals.filter(x => x !== a));
-        for (const x of [a, b]) { x.health = Math.max(8, x.health - 22 - Math.random() * 14); x.happy = Math.max(0, x.happy - 20); }
-        S.ratings.push(1.5); for (const v of S.visitors) v.happy -= 2; S.stats.fights = (S.stats.fights || 0) + 1;
-        Z.notify('⚔️ Bagarre dans ' + e.name + ' : ' + a.name + ' et ' + b.name + ' sont blessés.', 'bad', e);
-        if (Z.audio && !Z.silentLevel) Z.audio.play('fight');
-        popup(e, '⚔️ Bagarre entre ' + sp.pl + ' !', '<b>' + a.name + '</b> et <b>' + b.name + '</b> se sont battus pour l’espace et sont blessés. Les visiteurs sont choqués et la réputation du zoo en pâtit. Il faut d’urgence leur donner plus de place.', Z.fightImage(e.animals[0].sp));
-      }
+      if (e.animals.length < 2 || Z.crowdStage(e) < 3 || Math.random() > .6) continue;
+      const sp = SP[e.animals[0].sp], a = pick(e.animals), b = pick(e.animals.filter(x => x !== a));
+      for (const x of [a, b]) { x.health = Math.max(8, x.health - 22 - Math.random() * 14); x.happy = Math.max(0, x.happy - 20); }
+      S.ratings.push(1.5); for (const v of S.visitors) v.happy -= 2; S.stats.fights = (S.stats.fights || 0) + 1;
+      Z.notify('⚔️ Bagarre dans ' + e.name + ' : ' + a.name + ' et ' + b.name + ' sont blessés.', 'bad', e);
+      if (Z.audio && !Z.silentLevel) Z.audio.play('fight');
+      popup(e, '⚔️ Bagarre entre ' + sp.pl + ' !', '<b>' + a.name + '</b> et <b>' + b.name + '</b> se sont battus pour l’espace et sont blessés. Les visiteurs sont choqués et la réputation du zoo en pâtit. Il faut d’urgence leur donner plus de place.', Z.fightImage(e.animals[0].sp));
     }
   };
   Z.html.crowd = function (e) {
-    const n = e.animals.length; if (!n) return ''; const mx = Z.enclMax(e), o = Z.occupancy(e) * 100, col = o > 100 ? '#d9534f' : o > Z.BREED_MAX * 100 ? '#e0a020' : '#3fae5a';
-    return `<div class="card"><div class="ctitle"><b>Occupation : ${n} / ${mx} animaux</b><b style="color:${col}">${Math.round(o)} %</b></div><div class="bar"><i style="width:${Math.min(100, o)}%;background:${col}"></i></div><p class="muted">${Z.crowdText(e)}. Reproduction possible jusqu’à ${Math.round(Z.BREED_MAX * 100)} %.</p></div>`;
+    const n = e.animals.length; if (!n) return ''; const mx = Z.enclMax(e), o = Z.occupancy(e) * 100, col = o >= 105 ? '#d9534f' : o >= 95 ? '#e0a020' : '#3fae5a';
+    return `<div class="card"><div class="ctitle"><b>Occupation : ${n} / ${mx} animaux</b><b style="color:${col}">${Math.round(o)} %</b></div><div class="bar"><i style="width:${Math.min(100, o)}%;background:${col}"></i></div><p class="muted">${Z.crowdText(e)}. Seuils : plus de naissances à 95 %, malheureux à 105 %, refus de manger à 120 %, bagarres à 130 %.</p></div>`;
   };
 })();
