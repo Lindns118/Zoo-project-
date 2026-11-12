@@ -4,7 +4,7 @@
   const ls = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { } } };
 
   // ================= 9. Saisons =================
-  Z.SEASONS = [{ n: 'Printemps', icon: '🌱', demand: 1, tint: null }, { n: 'Été', icon: '🌞', demand: 1.25, tint: 'rgba(255,215,120,.05)' }, { n: 'Automne', icon: '🍂', demand: .9, tint: 'rgba(200,110,30,.09)' }, { n: 'Hiver', icon: '⛄', demand: .6, tint: 'rgba(210,230,255,.16)' }];
+  Z.SEASONS = [{ n: 'Printemps', icon: '🌱', demand: 1, tint: null }, { n: 'Été', icon: '🌞', demand: 1.2, tint: 'rgba(255,215,120,.05)' }, { n: 'Automne', icon: '🍂', demand: .92, tint: 'rgba(200,110,30,.09)' }, { n: 'Hiver', icon: '⛄', demand: .75, tint: 'rgba(210,230,255,.16)' }];
   Z.SEASON_DAYS = 12;
   Z.seasonIdx = () => Math.floor((Z.S.day - 1) / Z.SEASON_DAYS) % 4;
   Z.season = () => Z.SEASONS[Z.seasonIdx()];

@@ -70,7 +70,7 @@
     4: ['Très belle visite.', 'Beau parc, quelques détails à améliorer.'], 3: ['Correct, sans plus.', 'Pas mal, mais un peu cher pour ce que c’est.'],
     2: ['Déçu, je m’attendais à mieux.', 'Trop peu d’animaux à voir.'], 1: ['À fuir.', 'Une honte, les animaux font peine à voir.'],
   };
-  const WHY = { wc: 'Pas de toilettes !', drink: 'Impossible de trouver à boire.', food: 'Rien à manger sur place.', bench: 'Aucun banc pour s’asseoir.', queue: 'Des files d’attente interminables.' };
+  const WHY = { crowd: 'Beaucoup trop de monde, on ne voyait rien.', wc: 'Pas de toilettes !', drink: 'Impossible de trouver à boire.', food: 'Rien à manger sur place.', bench: 'Aucun banc pour s’asseoir.', queue: 'Des files d’attente interminables.' };
   Z.onExit = function (v) {
     const S = Z.S;
     if (v.fav && !v.favSeen) v.happy -= 10;
@@ -139,7 +139,7 @@
   Z.orderFood = function (k, auto) {
     const S = Z.S, p = Z.PACKS[k], room = Z.stockCap() - S.stock - S.orders.reduce((n, o) => n + o.amt, 0);
     if (room < p.amt) { if (!auto) Z.notify('Entrepôt trop petit pour cette commande : construisez un entrepôt (Services)', 'bad'); return false; }
-    const cost = p.amt * (1 - p.disc) * (auto ? 1.1 : 1); if (auto ? S.money < cost : !Z.pay('food', cost)) return false;
+    const cost = p.amt * (1 - p.disc) * (auto ? 1.1 : 1); if (auto ? S.money < cost - 6000 : !Z.pay('food', cost)) return false; // à crédit jusqu'à −6 000 € : les animaux ne doivent pas mourir de faim à la première difficulté
     if (auto) Z.spend('food', cost); S.orders.push({ amt: p.amt, eta: 10 }); return true;
   };
   Z.feed = function (cost, level) {
