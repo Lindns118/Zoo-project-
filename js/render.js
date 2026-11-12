@@ -112,11 +112,11 @@
   }
   // arbres dessinés (plus d'émojis) : feuillu, sapin, palmier, cactus, cerisier
   function tree(c, kind, x, y, k, h) {
-    const snow = Z.mapDef && Z.mapDef().snow;
+    const snow = (Z.mapDef && Z.mapDef().snow) || Z.seasonIdx() === 3;
     if (kind === '🌲') { c.fillStyle = '#6b4a2f'; c.fillRect(x - 2 * k, y - 8 * k, 4 * k, 8 * k); for (let i = 0; i < 3; i++) { const w = (13 - i * 3) * k, b = y - (6 + i * 9) * k; c.fillStyle = i % 2 ? '#2f7d46' : '#27703d'; c.beginPath(); c.moveTo(x - w, b); c.lineTo(x + w, b); c.lineTo(x, b - 15 * k); c.closePath(); c.fill(); if (snow) { c.fillStyle = '#fff'; c.beginPath(); c.moveTo(x - w * .45, b - 8 * k); c.lineTo(x + w * .45, b - 8 * k); c.lineTo(x, b - 15 * k); c.closePath(); c.fill(); } } }
     else if (kind === '🌴') { c.strokeStyle = '#8a6a3a'; c.lineWidth = 3.5 * k; c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(x + 5 * k, y - 16 * k, x + 2 * k, y - 30 * k); c.stroke(); c.strokeStyle = '#3f9a4a'; c.lineWidth = 3 * k; for (let i = 0; i < 6; i++) { const a = i / 6 * 6.283 + h; c.beginPath(); c.moveTo(x + 2 * k, y - 30 * k); c.quadraticCurveTo(x + 2 * k + Math.cos(a) * 9 * k, y - 36 * k + Math.sin(a) * 3 * k, x + 2 * k + Math.cos(a) * 15 * k, y - 27 * k + Math.sin(a) * 6 * k); c.stroke(); } }
     else if (kind === '🌵') { c.fillStyle = '#4f9a55'; rr(c, x - 3.5 * k, y - 26 * k, 7 * k, 26 * k, 3.5 * k); c.fill(); rr(c, x - 11 * k, y - 18 * k, 5 * k, 10 * k, 2.5 * k); c.fill(); c.fillRect(x - 9 * k, y - 11 * k, 7 * k, 3.5 * k); rr(c, x + 6 * k, y - 22 * k, 5 * k, 11 * k, 2.5 * k); c.fill(); c.fillRect(x + 2 * k, y - 14 * k, 7 * k, 3.5 * k); }
-    else { const pink = kind === '🌸', cols = pink ? ['#f4a9c4', '#f7bdd2', '#ee93b5'] : ['#3f8f45', '#4da455', '#35803c']; c.fillStyle = '#6b4a2f'; c.fillRect(x - 2.2 * k, y - 12 * k, 4.4 * k, 12 * k); [[-7, -17, 9], [7, -18, 9], [0, -26, 10], [0, -16, 9]].forEach((q, i) => { c.fillStyle = cols[i % 3]; c.beginPath(); c.arc(x + q[0] * k, y + q[1] * k, q[2] * k, 0, 7); c.fill(); }); }
+    else { const pink = kind === '🌸', sn = Z.seasonIdx(), cols = sn === 3 ? ['#b9c7c0', '#cfdad4', '#a9b8b0'] : sn === 2 ? ['#d98a2b', '#c9652a', '#e0a83a'] : pink && sn === 0 ? ['#f4a9c4', '#f7bdd2', '#ee93b5'] : ['#3f8f45', '#4da455', '#35803c']; c.fillStyle = '#6b4a2f'; c.fillRect(x - 2.2 * k, y - 12 * k, 4.4 * k, 12 * k); [[-7, -17, 9], [7, -18, 9], [0, -26, 10], [0, -16, 9]].forEach((q, i) => { c.fillStyle = cols[i % 3]; c.beginPath(); c.arc(x + q[0] * k, y + q[1] * k, q[2] * k, 0, 7); c.fill(); }); }
   }
   const label = (text, x, y, bg, size) => { const k = 1 / Z.clamp(cam.z, .5, 1); ctx.save(); ctx.translate(x, y); ctx.scale(k, k); ctx.font = 'bold ' + (size || 13) + 'px sans-serif'; const tw = ctx.measureText(text).width + 18; ctx.fillStyle = bg; rr(ctx, -tw / 2, -12, tw, 24, 12); ctx.fill(); ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, 0, 1); ctx.restore(); };
 
@@ -213,9 +213,10 @@
     // nuit et intempéries
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const hr = S.minute / 60, dark = hr < 5 ? .42 : hr < 7 ? .42 * (7 - hr) / 2 : hr > 21.5 ? .42 : hr > 19 ? .42 * (hr - 19) / 2.5 : 0;
+    const tint = Z.season().tint; if (tint) { ctx.fillStyle = tint; ctx.fillRect(0, 0, cw, ch); }
     if (dark > 0) { ctx.fillStyle = 'rgba(15,25,70,' + dark + ')'; ctx.fillRect(0, 0, cw, ch); }
     if (S.weather === 'rain') {
-      const t = performance.now() / 4, snow = Z.mapDef && Z.mapDef().snow;
+      const t = performance.now() / 4, snow = (Z.mapDef && Z.mapDef().snow) || Z.seasonIdx() === 3;
       if (snow) { ctx.fillStyle = 'rgba(255,255,255,.85)'; for (let i = 0; i < 140; i++) { const x = (hash(i, 1) * (cw + 200) + Math.sin(t / 40 + i) * 20) % (cw + 200) - 100, y = (hash(2, i) * ch + t * (.25 + hash(i, i) * .25)) % ch; ctx.fillRect(x, y, 2.5, 2.5); } }
       else { ctx.strokeStyle = 'rgba(190,215,255,.5)'; ctx.lineWidth = 1; ctx.beginPath(); for (let i = 0; i < 120; i++) { const x = (hash(i, 1) * (cw + 200) + t * .3) % (cw + 200) - 100, y = (hash(2, i) * ch + t * (1 + hash(i, i))) % ch; ctx.moveTo(x, y); ctx.lineTo(x - 4, y + 12); } ctx.stroke(); }
       ctx.fillStyle = 'rgba(60,80,110,.12)'; ctx.fillRect(0, 0, cw, ch);

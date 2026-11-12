@@ -236,7 +236,7 @@
       return { title: '🔬 Recherche', html: h };
     },
     world() {
-      const S = Z.S; let h = '<p class="muted">Chaque région a son climat, son relief, son public et ses habitats naturels, moins chers à construire. Chaque carte garde sa propre sauvegarde : vous pouvez y revenir à tout moment. Les régions s’ouvrent quand l’un de vos zoos atteint le niveau requis.</p>' + row('Meilleur niveau atteint', '⭐ ' + Z.bestLevel());
+      const S = Z.S; let h = '<p class="muted">Chaque région a son climat, son relief, son public et ses habitats naturels, moins chers à construire. Chaque carte garde sa propre sauvegarde : vous pouvez y revenir à tout moment. Les régions s’ouvrent quand l’un de vos zoos atteint le niveau requis.</p>' + row('Meilleur niveau atteint', '⭐ ' + Z.bestLevel()) + '<div class="btns"><button data-a="sandbox">🏖️ Bac à sable</button><button data-a="importz">📥 Importer un zoo</button></div>';
       h += Z.WORLD.map(m => {
         const info = Z.slotInfo(m.id), ok = Z.mapUnlocked(m), here = Z.slot === m.id, w = m.weather;
         const mods = Object.keys(m.bm).filter(k => BIO[k] && m.bm[k] !== 1).map(k => `<span class="${m.bm[k] < 1 ? 'good' : 'bad'}">${BIO[k].icon} ${m.bm[k] < 1 ? '−' : '+'}${Math.round(Math.abs(1 - m.bm[k]) * 100)} %</span>`).join(' ');
@@ -281,7 +281,7 @@
       return { title: '🎯 Missions & campagne', html: h };
     },
     menu() {
-      return { title: '⚙️ Menu', html: `<div class="btns col"><button data-a="save">💾 Sauvegarder</button><button data-a="camp">🏆 Campagne et mode libre</button><button data-a="help">❓ Comment jouer</button><button class="danger" data-a="reset">🗑️ Nouvelle partie libre</button></div><p class="muted">La partie est sauvegardée automatiquement chaque jour dans ce navigateur.</p>` };
+      return { title: '⚙️ Menu', html: `<div class="btns col"><button data-a="save">💾 Sauvegarder</button><button data-a="camp">🏆 Campagne et mode libre</button><button data-a="help">❓ Comment jouer</button><button class="danger" data-a="reset">🗑️ Nouvelle partie libre</button></div><p class="muted">La partie est sauvegardée automatiquement chaque jour dans ce navigateur.</p>` + Z.html.menu() };
     },
   };
 
@@ -338,7 +338,7 @@
     while (box.children.length > 4) box.firstChild.remove();
     setTimeout(() => { t.classList.add('out'); setTimeout(() => t.remove(), 400); }, 5000);
   }
-  Z.onNotify = toast;
+  Z.onNotify = (t, k, p) => { toast(t, k, p); Z.soundFor(t, k); };
   let modalBtns = [];
   function modal(title, html, btns) {
     modalBtns = btns.map(b => b[1]);
@@ -369,7 +369,7 @@
     $('#money').textContent = fmt(S.money); $('#money').className = S.money < 0 ? 'bad' : '';
     const xi = Z.xpInfo(); $('#lvl').innerHTML = `⭐ Niv. <b>${S.level}</b><span class="xpbar"><i style="width:${xi.pct}%"></i></span>`;
     $('#vis').textContent = S.visitors.length; $('#rep').innerHTML = `<span class="stars">${stars(r)}</span> ${r.toFixed(1).replace('.', ',')}`;
-    $('#clock').textContent = `${Z.html.event()}${WX[S.weather]} Jour ${S.day} · ${String(h).padStart(2, '0')}:${String(m - m % 10).padStart(2, '0')}`;
+    $('#clock').textContent = `${Z.html.event()}${Z.html.season()} · ${WX[S.weather]} Jour ${S.day} · ${String(h).padStart(2, '0')}:${String(m - m % 10).padStart(2, '0')}`;
     $('#open').textContent = Z.isOpen() ? 'Ouvert' : 'Fermé'; $('#open').className = 'tag ' + (Z.isOpen() ? 'ok' : 'bad');
     document.querySelectorAll('#speed button').forEach(b => b.classList.toggle('on', +b.dataset.v === S.speed));
     const g = Z.GOALS[S.goal], sc = Z.scenario(); $('#goal').textContent = sc ? `${sc.icon} ${sc.name} — jour ${S.day}/${sc.days} · ${sc.goals.filter(x => x.c(S)).length}/${sc.goals.length} objectifs` : g ? '🎯 ' + g.t : '🏆 Tous les objectifs sont atteints !';
@@ -405,7 +405,7 @@
     const c = planCost(); if (Z.S.money < c) return Z.notify('Fonds insuffisants pour ce plan (' + fmt(c) + ')', 'bad');
     let last = null;
     for (const p of plan.splice(0)) { if (p.k === 'path') Z.buildPath(p.x, p.y); else if (p.k === 'encl') last = Z.buildEncl(p.x, p.y, p.w, p.h, p.biome) || last; else Z.place(p.type, p.x, p.y); }
-    renderPlan(); if (last) { setTool('select'); openPanel('encl', last.id); }
+    Z.audio.play('build'); renderPlan(); if (last) { setTool('select'); openPanel('encl', last.id); }
   }
   Object.assign(ACT, { planok: planCommit, planundo: () => { plan.pop(); renderPlan(); }, plancancel: () => { plan.length = 0; renderPlan(); } });
   function ghostFor(tx, ty) {
@@ -525,7 +525,7 @@
       const sp = 500 * dt / Z.cam.z, c = Z.cam;
       if (keys.arrowleft || keys.q || keys.a) c.x -= sp; if (keys.arrowright || keys.d) c.x += sp;
       if (keys.arrowup || keys.z || keys.w) c.y -= sp; if (keys.arrowdown || keys.s) c.y += sp; Z.clampCam();
-      Z.tick(dt); Z.draw();
+      Z.tick(dt); Z.draw(); Z.audio.tick(dt);
       acc += dt; if (acc > .4) { acc = 0; updateTop(); renderPanel(false); drawMini(); }
       requestAnimationFrame(frame);
     })(last);

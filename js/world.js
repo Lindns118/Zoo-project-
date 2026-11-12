@@ -53,9 +53,9 @@
   // ---------- Profil et emplacements de sauvegarde ----------
   Z.slot = ls.get(CUR) || 'france';
   Z.slotKey = s => (s === 'france' ? BASE : BASE + ':' + s);
-  const setSlot = s => { Z.slot = s; ls.set(CUR, s); if (s !== 'scn') ls.set(CUR + ':free', s); };
+  const setSlot = Z.setSlot = s => { Z.slot = s; ls.set(CUR, s); if (s !== 'scn') ls.set(CUR + ':free', s); };
   Z.profile = function () { try { return JSON.parse(ls.get(PROFILE)) || { best: {} }; } catch (e) { return { best: {} }; } };
-  Z.bestLevel = function () { const b = Z.profile().best; let m = Z.S && !Z.S.scn ? Z.S.level : 1; for (const k in b) m = Math.max(m, b[k]); return m; };
+  Z.bestLevel = function () { const b = Z.profile().best; let m = Z.S && !Z.S.scn && !Z.S.sandbox && Z.slot !== 'import' ? Z.S.level : 1; for (const k in b) m = Math.max(m, b[k]); return m; };
   Z.mapUnlocked = m => Z.bestLevel() >= m.req;
   Z.slotInfo = function (id) {
     if (Z.slot === id && Z.S) return { day: Z.S.day, level: Z.S.level, money: Z.S.money, animals: Z.animalCount() };
@@ -63,7 +63,7 @@
   };
   const oldSave = Z.save;
   Z.save = function () {
-    const S = Z.S; if (S && !S.scn && Z.slot !== 'scn') { const p = Z.profile(); if (!(p.best[S.map] >= S.level)) { p.best[S.map] = S.level; ls.set(PROFILE, JSON.stringify(p)); } }
+    const S = Z.S; if (S && !S.scn && !S.sandbox && Z.WORLD.some(m => m.id === Z.slot)) { const p = Z.profile(); if (!(p.best[S.map] >= S.level)) { p.best[S.map] = S.level; ls.set(PROFILE, JSON.stringify(p)); } }
     return oldSave();
   };
   Z.playMap = function (id, fresh) {
