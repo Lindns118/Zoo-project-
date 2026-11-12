@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Zoo Project</title>
+<meta name="description" content="Zoo Project — un jeu de gestion de zoo réaliste, jouable dans le navigateur.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦁</text></svg>">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<header id="top">
+  <div class="brand">🦁 <b>Zoo Project</b></div>
+  <div class="stat" title="Trésorerie">💶 <b id="money"></b></div>
+  <div class="stat" title="Visiteurs dans le zoo">🧑‍🤝‍🧑 <b id="vis"></b></div>
+  <div class="stat" title="Réputation" id="rep"></div>
+  <div class="stat"><span id="clock"></span> <span id="open" class="tag"></span></div>
+  <div id="speed">
+    <button data-a="speed" data-v="0" title="Pause (Espace)">⏸</button>
+    <button data-a="speed" data-v="1" title="Vitesse normale (1)">▶</button>
+    <button data-a="speed" data-v="2" title="Rapide (2)">▶▶</button>
+    <button data-a="speed" data-v="4" title="Très rapide (3)">▶▶▶</button>
+  </div>
+</header>
+<div id="goal"></div>
+
+<aside id="panel"></aside>
+<div id="toasts"></div>
+<div id="hint"></div>
+<nav id="sub"></nav>
+<nav id="tools"></nav>
+<div id="modal"></div>
+
+<script src="js/data.js"></script>
+<script src="js/game.js"></script>
+<script src="js/render.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>
