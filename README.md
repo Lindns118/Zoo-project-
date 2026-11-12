@@ -6,6 +6,9 @@ Jeu de gestion de zoo réaliste, jouable directement dans le navigateur (aucune 
 
 ## Le jeu
 
+- **Animaux et bâtiments dessinés** : 41 espèces dessinées et animées (taille selon l'âge, mâles et femelles différents : crinière, bois, cornes, roue du paon…), bâtiments à toit en pente, attractions animées.
+- **Fiche animal** : un clic sur un animal ouvre sa fiche (portrait, âge, état, origine, vente, transfert).
+- **Marché de vente** : d'autres zoos achètent vos adultes au-dessus du prix ordinaire.
 - **Vue isométrique** : sol en losanges, bâtiments en volume, clôtures et personnages triés en profondeur.
 - **Cartes du monde** : six régions (France, Kenya, Canada, Brésil, Australie, Japon) avec leur relief, leur climat, leur public et leurs habitats naturels moins chers ; une sauvegarde par carte.
 - **Plan de construction** : les tracés s'ajoutent à un plan qu'on valide ou annule d'un coup ; bancs et poubelles se posent sur les allées ; arbres à défricher.

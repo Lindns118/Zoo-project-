@@ -23,13 +23,14 @@
   function box(c, x, y, w, h, up, top, left, right) {
     const cs = [[x, y], [x + w, y], [x + w, y + h], [x, y + h]].map(q => [px(q[0], q[1]), py(q[0], q[1])]); let si = 0; for (let i = 1; i < 4; i++) if (cs[i][1] > cs[si][1]) si = i;
     const a = cs[(si + 1) % 4], b = cs[(si + 3) % 4], L = a[0] < b[0] ? a : b, Rr = a[0] < b[0] ? b : a;
-    const sx = cs[si][0], sy = cs[si][1], wx = L[0], wy = L[1], ex = Rr[0], ey = Rr[1]; box.door = [(wx + sx) / 2, (wy + sy) / 2];
+    const sx = cs[si][0], sy = cs[si][1], wx = L[0], wy = L[1], ex = Rr[0], ey = Rr[1]; box.door = [(wx + sx) / 2, (wy + sy) / 2]; box.win = [(sx + ex) / 2, (sy + ey) / 2];
     c.fillStyle = left; c.beginPath(); c.moveTo(wx, wy); c.lineTo(sx, sy); c.lineTo(sx, sy - up); c.lineTo(wx, wy - up); c.closePath(); c.fill();
     c.fillStyle = right; c.beginPath(); c.moveTo(sx, sy); c.lineTo(ex, ey); c.lineTo(ex, ey - up); c.lineTo(sx, sy - up); c.closePath(); c.fill();
     c.fillStyle = top; poly(c, x, y, w, h, up); c.fill();
   }
   const shade = (hex, f) => { const n = parseInt(hex.slice(1), 16), r = Math.min(255, (n >> 16) * f) | 0, gg = Math.min(255, ((n >> 8) & 255) * f) | 0, b = Math.min(255, (n & 255) * f) | 0; return 'rgb(' + r + ',' + gg + ',' + b + ')'; };
 
+  Z.iso = { px, py, box, poly, shade, emoji, rr };
   Z.initRender = function (canvas) { cv = canvas; ctx = cv.getContext('2d'); resize(); window.addEventListener('resize', resize); };
   function resize() { dpr = Math.min(2, window.devicePixelRatio || 1); cw = window.innerWidth; ch = window.innerHeight; cv.width = cw * dpr; cv.height = ch * dpr; clampCam(); }
   function clampCam() { cam.z = Z.clamp(cam.z, .3, 2.6); cam.x = Z.clamp(cam.x, -OX, GW - OX); cam.y = Z.clamp(cam.y, 0, GH); }
@@ -88,6 +89,7 @@
   function drawBld(c, type, x, y, alpha, o) {
     const d = BL[type], s = d.size, cx = px(x + s / 2, y + s / 2), cy = py(x + s / 2, y + s / 2); c.globalAlpha = alpha;
     if (o && o.bt > 0) { box(c, x + .08, y + .08, s - .16, s - .16, 10 + 6 * s, '#c9a46a', '#a8834f', '#8f6d3e'); emoji(c, '🏗️', cx, cy - 16 - 8 * s, 14 + 6 * s); c.globalAlpha = 1; return; }
+    if (Z.bldSprite(c, type, x, y, o)) { if (o && o.closed && !o.bt) emoji(c, '🚫', cx + 10, cy - 30 - s * 8, 13); c.globalAlpha = 1; return; }
     if (d.cat === 'ride') {
       box(c, x + .06, y + .06, s - .12, s - .12, 7, shade(d.color, 1.25), shade(d.color, .95), shade(d.color, .75));
       c.fillStyle = 'rgba(0,0,0,.18)'; c.beginPath(); c.ellipse(cx, cy - 6, s * 15, s * 6, 0, 0, 7); c.fill();
@@ -166,11 +168,11 @@
       } else if (it.k === 1) drawBld(ctx, it.o.type, it.o.x, it.o.y, 1, it.o);
       else if (it.k === 2) fenceSeg(it.e, it.a[0], it.a[1], it.a[2], it.a[3]);
       else if (it.k === 3) {
-        const a = it.o, sp = SP[a.sp], ax = px(a.x, a.y), ay = py(a.x, a.y), size = sp.size * (a.age < 1 ? .6 : a.age < sp.mat ? .8 : 1);
-        ctx.fillStyle = 'rgba(0,0,0,.2)'; ctx.beginPath(); ctx.ellipse(ax, ay, size * .4, size * .16, 0, 0, 7); ctx.fill();
-        ctx.save(); ctx.translate(ax, ay - size * .4); if (a.dir > 0) ctx.scale(-1, 1); emoji(ctx, sp.e, 0, 0, size); ctx.restore();
+        const a = it.o, ax = px(a.x, a.y), ay = py(a.x, a.y), dx = px(a.tx, a.ty) - ax; if (!(a.wait > 0) && Math.abs(dx) > 1) a._r = dx > 0;
+        if (ui.sel === a) { ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.ellipse(ax, ay, 16, 7, 0, 0, 7); ctx.stroke(); ctx.setLineDash([]); }
+        const hgt = Z.drawAnimal(ctx, a, ax, ay, a._r !== false, night);
         const st = a.sick ? '🤒' : a.hunger < 20 ? '🍖' : night ? '💤' : a.preg ? '🤰' : '';
-        if (st) emoji(ctx, st, ax + size * .45, ay - size * .95, 11);
+        if (st) emoji(ctx, st, ax + 8, ay - hgt - 4, 11);
       } else if (it.k === 4) {
         const v = it.o, x = px(v.x + v.ox, v.y + v.oy), y = py(v.x + v.ox, v.y + v.oy), k = v.kid ? .72 : 1;
         ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(x, y, 5 * k, 2.4 * k, 0, 0, 7); ctx.fill();

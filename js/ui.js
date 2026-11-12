@@ -16,7 +16,7 @@
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   const bar = (v, col) => `<div class="bar"><i style="width:${Z.clamp(v, 0, 100)}%;background:${col || (v > 60 ? '#3fae5a' : v > 30 ? '#e0a020' : '#d9534f')}"></i></div>`;
   const stars = r => { let s = ''; for (let i = 1; i <= 5; i++) s += r >= i - .5 ? '★' : '☆'; return s; };
-  const ent = id => Z.S.enclosures.find(e => e.id === id) || Z.S.buildings.find(e => e.id === id) || Z.S.staff.find(e => e.id === id) || Z.S.visitors.find(e => e.id === id);
+  const ent = id => Z.S.enclosures.find(e => e.id === id) || Z.S.buildings.find(e => e.id === id) || Z.S.staff.find(e => e.id === id) || Z.S.visitors.find(e => e.id === id) || (Z.animalById && Z.animalById(id));
 
   // ---------- Barre d'outils ----------
   const TOOLS = [
@@ -80,7 +80,7 @@
         h += `<h3>${sp.e} ${n} ${n > 1 ? sp.pl : sp.n.toLowerCase()} <small>(${n * sp.space}/${area} cases utilisées · attrait ${Math.round(Z.enclAppeal(e))})</small></h3>`;
         h += e.animals.map(a => `<div class="card"><div class="ctitle"><b>${sp.e} ${esc(a.name)}</b> <span class="muted">${a.sex === 'M' ? '♂' : '♀'} · ${a.age < 1 ? 'bébé' : Math.floor(a.age) + ' ans'}${a.preg ? ' · 🤰 gestation' : ''}</span>${a.sick ? '<span class="tag bad">malade</span>' : ''}</div>
           <div class="grid3"><div>Santé${bar(a.health)}</div><div>Bonheur${bar(a.happy)}</div><div>Satiété${bar(a.hunger)}</div></div>
-          <div class="btns">${a.sick ? `<button data-a="evet" data-id="${a.id}">🚑 Soin d’urgence — 500 €</button>` : ''}<button data-a="sell" data-id="${a.id}">Vendre (+${fmt(Z.animalValue(a))})</button>${xfer(a)}</div>${Z.html.animal(a)}</div>`).join('');
+          <div class="btns">${a.sick ? `<button data-a="evet" data-id="${a.id}">🚑 Soin d’urgence — 500 €</button>` : ''}<button data-a="afiche" data-id="${a.id}">📋 Fiche</button><button data-a="sell" data-id="${a.id}">Vendre (+${fmt(Z.animalValue(a))})</button>${xfer(a)}</div>${Z.html.animal(a)}</div>`).join('');
       }
       const rz = (sd, d, lbl) => { const r = Z.resizeInfo(e, sd, d); return `<button ${r ? '' : 'disabled'} data-a="resize" data-s="${sd}" data-d="${d}">${lbl}${r && r.cost ? `<small>${fmt(r.cost)}</small>` : ''}</button>`; };
       h += `<h3>Modifier l’enclos</h3><div class="btns"><button data-a="rename">✏️ Renommer</button></div><p class="muted">Agrandir d’une rangée :</p><div class="btns">${rz('n', 1, '⬆️ Nord')}${rz('s', 1, '⬇️ Sud')}${rz('w', 1, '⬅️ Ouest')}${rz('e', 1, '➡️ Est')}</div><p class="muted">Réduire d’une rangée :</p><div class="btns">${rz('n', -1, 'Nord')}${rz('s', -1, 'Sud')}${rz('w', -1, 'Ouest')}${rz('e', -1, 'Est')}</div><p class="muted">Pour le déplacer : outil ↔️ Déplacer.</p>`;
@@ -314,7 +314,7 @@
     reset: () => modal('Nouvelle partie ?', '<p>Votre zoo actuel sera définitivement effacé.</p>', [['Annuler'], ['Tout effacer', () => { Z.restart(null); showHelp(); }, 'danger']]),
     modalbtn: d => { const f = modalBtns[+d.i]; $('#modal').style.display = 'none'; if (f) f(); },
   };
-  Object.assign(ACT, Z.extraActs || {});
+  Object.assign(ACT, Z.extraActs || {}); Z.ACT = ACT; Z.PANELS = PANELS;
   document.addEventListener('click', ev => {
     const el = ev.target.closest('[data-a]'); if (!el) return;
     const f = ACT[el.dataset.a]; if (f) { f(el.dataset); renderPanel(true); updateTop(); }
@@ -430,6 +430,7 @@
     const f = Z.toTileF(sx, sy), S = Z.S; let best = null, bd = .9;
     for (const a of S.staff.filter(s => !Z.STAFF[s.type].desk).concat(S.visitors)) { const d = Math.hypot(a.x + a.ox - f.x - .3, a.y + a.oy - f.y - .3); if (d < bd) { bd = d; best = a; } }
     if (best) return openPanel(best.kind === 'staff' ? 'staffm' : 'vis', best.id);
+    const an = Z.pickAnimal(f); if (an) return openPanel('animal', an);
     const at = (x, y) => (Z.inb(Math.floor(x), Math.floor(y)) ? Z.occ[Z.idx(Math.floor(x), Math.floor(y))] : null);
     let o = at(f.x, f.y);
     if (!o || o.kind !== 'bld') for (const k of [.5, 1]) { const b = at(f.x + k, f.y + k); if (b && b.kind === 'bld' && !BL[b.type].onPath) { o = b; break; } }
