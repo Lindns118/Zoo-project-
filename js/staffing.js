@@ -13,8 +13,11 @@
     cashier:  { name: 'Caissier', icon: '🎟️', salary: 85, color: '#3b7dd8', desk: true, lvl: 1, desc: 'Tient un guichet à l’entrée : 40 entrées par heure et par caissier (10 seulement sans personne).' },
     vendor:   { name: 'Vendeur', icon: '🧑‍🍳', salary: 80, color: '#e8743b', desk: true, lvl: 1, desc: 'Un vendeur par boutique ou stand (deux pour un restaurant). Sans vendeur, le commerce reste fermé.' },
     guide:    { name: 'Animateur', icon: '🧑‍🏫', salary: 120, color: '#8b5cc9', desk: true, lvl: 5, desc: 'Présente les animaux au public : jusqu’à +20 % de satisfaction devant les enclos (1 pour 150 visiteurs).' },
+    operator: { name: 'Opérateur d’attraction', icon: '🎡', salary: 95, color: '#0277bd', desk: true, lvl: 1, desc: 'Fait tourner une attraction (deux pour les plus grandes). Sans opérateur, l’attraction reste fermée.' },
+    scientist: { name: 'Chercheur', icon: '🧑‍🔬', salary: 180, color: '#00838f', desk: true, lvl: 2, desc: 'Produit 12 points de recherche par jour pour le projet en cours.' },
     security: { name: 'Agent de sécurité', icon: '💂', salary: 110, color: '#444', desk: true, lvl: 7, desc: 'Prévient vols et dégradations quand la foule grossit (1 pour 200 visiteurs).' },
   });
+  Z.OSLOTS = {};
   const VSLOTS = { food: 1, drink: 1, gift: 1, ice: 1, resto: 2 };
 
   Z.staffCount = t => Z.S.staff.reduce((n, s) => n + (s.type === t ? 1 : 0), 0);
@@ -31,6 +34,9 @@
     set('vet', an >= 6 ? an / 35 : 0, `${an} animaux (1 pour 35)`, 'maladies non soignées, décès');
     let slots = 0; for (const b of S.buildings) if (!b.bt) slots += VSLOTS[b.type] || 0;
     set('vendor', slots, `${slots} poste(s) de vente à tenir`, 'commerces fermés, visiteurs affamés');
+    let os = 0; for (const b of S.buildings) if (!b.bt) os += Z.OSLOTS[b.type] || 0;
+    set('operator', os, `${os} poste(s) d’attraction à tenir`, 'attractions fermées');
+    set('scientist', S.research.cur ? 1 : 0, S.research.cur ? 'un projet de recherche est en cours' : 'aucun projet de recherche en cours', 'la recherche n’avance que grâce au budget', true);
     set('cashier', dm > 0 ? Math.max(1, (dm - 10) / 40) : 0, `${Math.round(dm)} visiteurs/heure attendus à l’entrée`, 'file d’attente : des visiteurs repartent');
     set('guide', vis / 150, `${vis} visiteurs (1 pour 150)`, 'bonus de satisfaction perdu', true);
     set('security', vis >= 80 ? vis / 200 : 0, `${vis} visiteurs (1 pour 200)`, 'vols et dégradations');
@@ -41,6 +47,8 @@
   Z.staffAssign = function () {
     const S = Z.S; let v = Z.staffCount('vendor');
     for (const b of S.buildings) { const n = VSLOTS[b.type]; if (!n) continue; if (!b.bt && v >= n) { v -= n; b.closed = 0; } else b.closed = 1; }
+    let o = Z.staffCount('operator');
+    for (const b of S.buildings) { const n = Z.OSLOTS[b.type]; if (!n) continue; if (!b.bt && o >= n) { o -= n; b.closed = 0; } else b.closed = 1; }
   };
   const wrap = (name, after) => { const f = Z[name]; Z[name] = function () { const r = f.apply(this, arguments); after(r, arguments); return r; }; };
   wrap('hire', Z.staffAssign); wrap('fire', Z.staffAssign); wrap('demolish', Z.staffAssign);

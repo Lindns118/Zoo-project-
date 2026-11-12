@@ -21,7 +21,7 @@
   Z.focus = (tx, ty) => { cam.x = tx * T; cam.y = ty * T; clampCam(); };
 
   // ----- couche statique : sol, allées, enclos, bâtiments -----
-  const DECO = { savane: ['🌾', '🌾', '🪨', '🌴'], foret: ['🌿', '🌳', '🌲', '🍄'], montagne: ['🪨', '🪨', '⛰️', '🌲'], aquatique: ['🪷', '🌾', '🪨'], polaire: ['🧊', '🧊', '🪨'] };
+  const DECO = { desert: ['🌵', '🪨', '🌵', '🏜️'], prehist: ['🌴', '🌿', '🦴', '🌋'], savane: ['🌾', '🌾', '🪨', '🌴'], foret: ['🌿', '🌳', '🌲', '🍄'], montagne: ['🪨', '🪨', '⛰️', '🌲'], aquatique: ['🪷', '🌾', '🪨'], polaire: ['🧊', '🧊', '🪨'] };
   function drawGround() {
     const S = Z.S; g.setTransform(SS, 0, 0, SS, 0, 0);
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {

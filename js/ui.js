@@ -20,21 +20,22 @@
 
   // ---------- Barre d'outils ----------
   const TOOLS = [
-    ['select', '🖐️', 'Explorer'], ['path', '🛣️', 'Allées'], ['encl', '🚧', 'Enclos'], ['shop', '🏪', 'Services'], ['decor', '🌳', 'Décor'], ['move', '↔️', 'Déplacer'], ['demo', '🧨', 'Démolir'],
-    ['|'], ['p:staff', '👷', 'Personnel'], ['p:animals', '🦁', 'Animaux'], ['p:visitors', '🧑‍🤝‍🧑', 'Visiteurs'], ['p:fin', '💶', 'Finances'], ['p:prog', '📈', 'Progression'], ['p:stats', '📊', 'Stats'], ['p:goals', '🎯', 'Missions'], ['view', '👁️', 'Vues'], ['p:menu', '⚙️', 'Menu'],
+    ['select', '🖐️', 'Explorer'], ['path', '🛣️', 'Allées'], ['encl', '🚧', 'Enclos'], ['shop', '🏪', 'Services'], ['ride', '🎡', 'Attractions'], ['decor', '🌳', 'Décor'], ['move', '↔️', 'Déplacer'], ['demo', '🧨', 'Démolir'],
+    ['|'], ['p:staff', '👷', 'Personnel'], ['p:animals', '🦁', 'Animaux'], ['p:visitors', '🧑‍🤝‍🧑', 'Visiteurs'], ['p:fin', '💶', 'Finances'], ['p:research', '🔬', 'Recherche'], ['p:prog', '📈', 'Progression'], ['p:stats', '📊', 'Stats'], ['p:goals', '🎯', 'Missions'], ['view', '👁️', 'Vues'], ['p:menu', '⚙️', 'Menu'],
   ];
   function renderTools() {
     $('#tools').innerHTML = TOOLS.map(t => t[0] === '|' ? '<span class="sep"></span>' :
       `<button class="tool ${ui.tool === t[0] || (t[0] === 'view' && ui.view) || (ui.panel && 'p:' + ui.panel === t[0]) ? 'on' : ''}" data-a="tool" data-id="${t[0]}"><b>${t[1]}</b><span>${t[2]}</span></button>`).join('');
     let sub = '';
-    if (ui.tool === 'encl') sub = Object.keys(BIO).filter(k => !Z.S.rules.biomes || Z.S.rules.biomes.includes(k)).map(k => !Z.biomeUnlocked(k) ? `<button class="chip locked" disabled>🔒 ${BIO[k].name}<small>Niveau ${BIO[k].lvl}</small></button>` : `<button class="chip ${ui.arg === k ? 'on' : ''}" data-a="arg" data-id="${k}">${BIO[k].icon} ${BIO[k].name}<small>${BIO[k].cost} €/case</small></button>`).join('');
-    if (ui.tool === 'shop' || ui.tool === 'decor') sub = Object.keys(BL).filter(k => BL[k].cat === ui.tool).map(k => !Z.bldUnlocked(k) ? `<button class="chip locked" disabled>🔒 ${BL[k].name}<small>Niveau ${BL[k].lvl}</small></button>` : `<button class="chip ${ui.arg === k ? 'on' : ''}" data-a="arg" data-id="${k}" title="${esc(BL[k].desc)}">${BL[k].icon} ${BL[k].name}<small>${fmt(BL[k].cost)}</small></button>`).join('');
+    if (ui.tool === 'encl') sub = Object.keys(BIO).filter(k => !Z.S.rules.biomes || Z.S.rules.biomes.includes(k)).map(k => !Z.biomeUnlocked(k) ? `<button class="chip locked" disabled>🔒 ${BIO[k].name}<small>${Z.lockLabel(BIO[k])}</small></button>` : `<button class="chip ${ui.arg === k ? 'on' : ''}" data-a="arg" data-id="${k}">${BIO[k].icon} ${BIO[k].name}<small>${BIO[k].cost} €/case</small></button>`).join('');
+    if (ui.tool === 'shop' || ui.tool === 'decor' || ui.tool === 'ride') sub = Object.keys(BL).filter(k => BL[k].cat === ui.tool).map(k => !Z.bldUnlocked(k) ? `<button class="chip locked" disabled>🔒 ${BL[k].name}<small>${Z.lockLabel(BL[k])}</small></button>` : `<button class="chip ${ui.arg === k ? 'on' : ''}" data-a="arg" data-id="${k}" title="${esc(BL[k].desc)}">${BL[k].icon} ${BL[k].name}<small>${fmt(BL[k].cost)}</small></button>`).join('');
     $('#sub').innerHTML = sub; $('#sub').style.display = sub ? 'flex' : 'none';
     const hints = {
       select: '', path: 'Glissez pour tracer une allée (12 €/case). Les visiteurs et le personnel ne marchent que sur les allées.',
       encl: 'Choisissez un habitat puis glissez pour dessiner l’enclos sur votre terrain. Une allée doit le longer. Le chantier dure plusieurs heures.',
       shop: BL[ui.arg] ? BL[ui.arg].desc + ' À placer le long d’une allée.' : '', decor: BL[ui.arg] ? BL[ui.arg].desc : '',
       move: 'Glissez un bâtiment ou un enclos (avec ses animaux) vers son nouvel emplacement. Coût : 10 % de son prix.',
+      ride: BL[ui.arg] ? BL[ui.arg].desc + ' Nécessite un opérateur et une allée.' : 'Aucune attraction disponible : lancez un projet dans 🔬 Recherche.',
       demo: 'Touchez une allée, un bâtiment ou un enclos vide pour le démolir (30 % remboursés).',
     };
     setHint(hints[ui.tool] || (ui.view ? 'Vue : ' + VIEWS[ui.view] + ' — touchez 👁️ pour changer' : ''));
@@ -44,7 +45,7 @@
     if (id === 'view') { const o = [null, 'happy', 'clean', 'crowd']; ui.view = o[(o.indexOf(ui.view) + 1) % 4]; renderTools(); return; }
     if (id.startsWith('p:')) { const p = id.slice(2); if (ui.panel === p) closePanel(); else openPanel(p); return; }
     ui.tool = id; ui.ghost = null;
-    ui.arg = id === 'encl' ? 'savane' : id === 'shop' ? 'food' : id === 'decor' ? 'tree' : null;
+    ui.arg = id === 'encl' ? 'savane' : id === 'shop' ? 'food' : id === 'decor' ? 'tree' : id === 'ride' ? (Object.keys(BL).find(k => BL[k].cat === 'ride' && Z.bldUnlocked(k)) || null) : null;
     renderTools();
   }
 
@@ -87,7 +88,7 @@
         const s = SP[k], ok = Z.speciesUnlocked(k);
         return `<div class="card ${ok ? '' : 'locked'}"><div class="ctitle"><b>${s.e} ${s.n}</b><b>${fmt(s.price)}</b></div>
           <p class="muted">Espace : ${s.space} cases/animal · Groupe : ${s.grp} min. · Nourriture : ${s.food} €/j · Attrait : ${s.app}</p>
-          ${ok ? `<div class="btns"><button data-a="buy" data-k="${k}" data-s="M">Acheter un mâle ♂</button><button data-a="buy" data-k="${k}" data-s="F">Acheter une femelle ♀</button></div>` : `<p>🔒 Disponible au niveau ${s.lvl}</p>`}</div>`;
+          ${ok ? `<div class="btns"><button data-a="buy" data-k="${k}" data-s="M">Acheter un mâle ♂</button><button data-a="buy" data-k="${k}" data-s="F">Acheter une femelle ♀</button></div>` : `<p>🔒 ${s.res ? 'À débloquer par la recherche : ' + Z.RESEARCH[s.res].name : 'Disponible au niveau ' + s.lvl}</p>`}</div>`;
       }).join('');
       if (!n) h += `<div class="btns"><button class="danger" data-a="demoencl">🧨 Démolir l’enclos</button></div>`;
       return { title: esc(e.name), html: h };
@@ -96,7 +97,7 @@
       const b = ent(id); if (!b) return null; const d = BL[b.type];
       let h = `<p class="muted">${esc(d.desc)}</p>`;
       if (b.bt > 0) h += `<div class="warn">🏗️ En construction : ouverture dans ${b.bt} h</div>`;
-      if (b.closed && !b.bt) h += '<div class="warn">🚫 Fermé : aucun vendeur disponible. Embauchez-en dans 👷 Personnel.</div>';
+      if (b.closed && !b.bt) h += '<div class="warn">🚫 Fermé : personnel manquant (vendeur ou opérateur). Embauchez-en dans 👷 Personnel.</div>';
       if (!b.acc.length && d.cat === 'shop') h += '<div class="warn">⚠️ Aucune allée reliée à l’entrée ne touche ce bâtiment</div>';
       if (d.price) h += `<label>Prix de vente : <b id="rv">${fmt(b.price)}</b> <span class="muted">(conseillé ${fmt(d.price)})</span><input type="range" min="${d.price * .4}" max="${d.price * 2.5}" step="0.5" value="${b.price}" data-r="price"></label>` + row('Ventes aujourd’hui', b.sold) + row('Coût par vente', fmt(d.goods));
       if (d.upkeep) h += row('Entretien', fmt(d.upkeep) + '/jour');
@@ -140,7 +141,7 @@
         return `<div class="card click" data-a="goto" data-id="${e.id}"><div class="ctitle"><b>${sp ? sp.e : BIO[e.biome].icon} ${esc(e.name)}</b><span class="muted">${n ? n + ' ' + (n > 1 ? sp.pl : sp.n.toLowerCase()) : 'vide'}</span></div>
           ${n ? `<div class="grid3"><div>Bonheur${bar(Z.avg(e, 'happy'))}</div><div>Santé${bar(Z.avg(e, 'health'))}</div><div>Nourriture${bar(e.food)}</div></div>` : ''}${iss.length ? `<p class="bad">⚠️ ${esc(iss[0])}</p>` : ''}</div>`;
       }).join('');
-      h += '<h3>Espèces à débloquer</h3>' + Object.keys(SP).filter(k => !Z.speciesUnlocked(k)).map(k => `<div class="row"><span>${SP[k].e} ${SP[k].n} <span class="muted">(${BIO[SP[k].b].name})</span></span><b>Niveau ${SP[k].lvl}</b></div>`).join('');
+      h += '<h3>Espèces à débloquer</h3>' + Object.keys(SP).filter(k => !Z.speciesUnlocked(k)).map(k => `<div class="row"><span>${SP[k].e} ${SP[k].n} <span class="muted">(${BIO[SP[k].b].name})</span></span><b>${Z.lockLabel(SP[k])}</b></div>`).join('');
       return { title: '🦁 Animaux', html: h };
     },
     visitors() {
@@ -151,7 +152,7 @@
       return { title: '🧑‍🤝‍🧑 Visiteurs', html: h };
     },
     fin() {
-      const S = Z.S, tab = ui.tab.fin; let h = tabs('fin', [['bilan', 'Bilan'], ['prev', 'Prévisions'], ['bank', 'Banque'], ['ads', 'Marketing']]);
+      const S = Z.S, tab = ui.tab.fin; let h = tabs('fin', [['bilan', 'Bilan'], ['prev', 'Prévisions'], ['bank', 'Banque'], ['ads', 'Marketing'], ['sim', 'Simulation']]);
       if (tab === 'bilan') {
         h += `<label>Prix du billet : <b id="rv">${fmt(S.ticket)}</b> <span class="muted">(prix juste ≈ ${fmt(Z.fairPrice())})</span><input type="range" min="0" max="80" step="1" value="${S.ticket}" data-r="ticket"></label>`;
         const table = (cats, title) => {
@@ -177,6 +178,12 @@
         h += '<h3>Prêts en cours</h3>' + (S.loans.length ? S.loans.map((l, i) => `<div class="card"><div class="ctitle"><b>${esc(l.n)}</b><b>${fmt(l.left)}</b></div><p class="muted">Remboursement : ${fmt(l.pay)}/jour + ${pct(l.rate)} d’intérêts par jour · encore ${Math.ceil(l.left / l.pay)} jours</p><div class="btns"><button data-a="repay" data-i="${i}">Solder maintenant (${fmt(l.left)})</button></div></div>`).join('') : '<p class="muted">Aucun prêt en cours.</p>');
         h += '<h3>Offres de la banque</h3>' + Object.keys(Z.LOANS).map(k => { const d = Z.LOANS[k], ok = d.ok(); return `<div class="card ${ok ? '' : 'locked'}"><div class="ctitle"><b>${d.n}</b><b>${fmt(d.amt)}</b></div><p class="muted">${d.days} jours · ${pct(d.rate)} par jour · ${fmt(d.amt / d.days)}/jour · ${d.req}</p>${ok ? `<div class="btns"><button data-a="borrow" data-k="${k}">Emprunter</button></div>` : '<p>🔒 Condition non remplie</p>'}</div>`; }).join('');
         h += '<p class="muted">Trois prêts au maximum. Si la trésorerie reste négative 7 jours de suite, c’est la faillite.</p>';
+      } else if (tab === 'sim') {
+        const sim = Z.simulate();
+        h += '<p class="muted">Simulation d’une journée type (météo et réputation actuelles) selon le prix du billet. La capacité des guichets limite les entrées.</p>';
+        h += '<div class="row total"><span>Prix</span><span>Visiteurs</span><span>Billets</span><b>Total estimé</b></div>' + sim.map(r => `<div class="row ${r.best ? 'simbest' : ''}"><span>${fmt(r.p)}${r.cur ? ' <span class="tag">actuel</span>' : ''}</span><span>${r.v}${r.lost ? ` <span class="bad">(−${r.lost})</span>` : ''}</span><span>${fmt(r.tickets)}</span><b>${fmt(r.total)}${r.best ? ' ★' : ''}</b></div>`).join('');
+        const b = sim.find(r => r.best); h += `<p class="muted">★ Meilleur total estimé (billets + marge des boutiques). Entre parenthèses : visiteurs perdus faute de caissiers.</p><div class="btns"><button data-a="setprice" data-v="${b.p}">Appliquer ${fmt(b.p)}</button></div>`;
+        h += '<h3>Effet d’une campagne de publicité</h3>' + Object.keys(Z.ADS).map(k => { const a = Z.ADS[k], cur = sim.find(r => r.cur), gain = cur.total * (a.f - 1) * a.d; return row(a.icon + ' ' + a.n + ' <span class="muted">(' + fmt(a.cost) + ')</span>', `<span class="${gain > a.cost ? 'good' : 'bad'}">${gain > a.cost ? '+' : '−'}${fmt(Math.abs(gain - a.cost))}</span>`); }).join('') + '<p class="muted">Gain net estimé sur la durée de la campagne.</p>';
       } else {
         h += S.ads ? `<div class="warn">📣 ${Z.ADS[S.ads.k].n} en cours : encore ${S.ads.d} jour(s)</div>` : '<p class="muted">Une campagne publicitaire augmente l’affluence pendant quelques jours. Une seule à la fois.</p>';
         h += Object.keys(Z.ADS).map(k => { const a = Z.ADS[k]; return `<div class="card"><div class="ctitle"><b>${a.icon} ${a.n}</b><b>${fmt(a.cost)}</b></div><p class="muted">${a.desc}</p>${S.ads ? '' : `<div class="btns"><button data-a="ads" data-k="${k}">Lancer</button></div>`}</div>`; }).join('');
@@ -205,6 +212,21 @@
       else if (!Z.adjacentOwned(p)) h += '<div class="warn">Achetez d’abord un terrain voisin.</div>';
       else h += `<div class="btns"><button data-a="land" data-id="${p.id}">🗺️ Acheter pour ${fmt(p.price)}</button></div>`;
       return { title: '🗺️ ' + p.n, html: h };
+    },
+    research() {
+      const S = Z.S, R = S.research, rate = Z.researchRate(), cur = R.cur && Z.RESEARCH[R.cur];
+      let h = `<div class="kpis"><div><small>Points par jour</small><b>${rate.toFixed(0)}</b></div><div><small>Chercheurs</small><b>${Z.staffCount('scientist')}</b></div></div>`;
+      h += `<label>Budget de recherche : <b id="rv">${fmt(R.budget)}</b> <span class="muted">par jour (50 € = 1 point)</span><input type="range" min="0" max="3000" step="50" value="${R.budget}" data-r="rbudget"></label>`;
+      h += `<div class="btns">${Z.staffUnlocked('scientist') ? '<button data-a="hire" data-k="scientist">🧑‍🔬 Embaucher un chercheur (180 €/jour)</button>' : '<span class="muted">🔒 Chercheurs disponibles au niveau 2</span>'}</div>`;
+      h += cur ? `<div class="card cur"><div class="ctitle"><b>${cur.icon} ${cur.name}</b><b>${Math.floor(R.prog)} / ${cur.cost}</b></div>${bar(R.prog / cur.cost * 100, '#00838f')}<p class="muted">${rate > 0 ? 'Fin estimée dans ' + Math.ceil((cur.cost - R.prog) / rate) + ' jour(s)' : '⚠️ Aucun chercheur ni budget : le projet est à l’arrêt'}</p></div>` : '<div class="warn">Aucun projet en cours : choisissez-en un ci-dessous.</div>';
+      for (const cat of ['Animaux', 'Attractions', 'Gestion']) {
+        h += `<h3>${cat}</h3>` + Object.keys(Z.RESEARCH).filter(k => Z.RESEARCH[k].cat === cat).map(k => {
+          const p = Z.RESEARCH[k], st = Z.researchState(k), u = Z.researchUnlocks(k);
+          const right = st === 'done' ? '✅' : st === 'cur' ? '⏳' : st === 'lvl' ? '🔒 Niv. ' + p.lvl : st === 'req' ? '🔒 ' + Z.RESEARCH[p.req].name : p.cost + ' pts';
+          return `<div class="card ${st === 'done' ? 'done' : st === 'cur' ? 'cur' : st === 'ok' ? '' : 'locked'}"><div class="ctitle"><b>${p.icon} ${p.name}</b><b>${right}</b></div><p class="muted">${u.length ? u.join(' · ') : p.desc}</p>${st === 'ok' ? `<div class="btns"><button data-a="rstart" data-k="${k}">${cur ? 'Remplacer le projet en cours' : 'Lancer la recherche'}</button></div>` : ''}</div>`;
+        }).join('');
+      }
+      return { title: '🔬 Recherche', html: h };
     },
     stats() {
       const S = Z.S, hs = S.fin.history.filter(x => x.money != null), kpi = (l, v) => `<div><small>${l}</small><b>${v}</b></div>`;
@@ -257,6 +279,7 @@
     hire: d => Z.hire(d.k), fire: d => { Z.fire(+d.id); if (ui.panel === 'staffm') openPanel('staff'); },
     goto: d => { const o = ent(+d.id); if (!o) return; if (o.kind === 'encl') { Z.focus(o.x + o.w / 2, o.y + o.h / 2); openPanel('encl', o.id); } else { Z.focus(o.x, o.y); openPanel('staffm', o.id); } },
     tab: d => { ui.tab[d.p] = d.id; },
+    rstart: d => Z.startResearch(d.k), setprice: d => { Z.S.ticket = +d.v; },
     land: d => { Z.buyParcel(+d.id); },
     rename: () => { const e = ent(ui.parg), n = prompt('Nom de l’enclos :', e.name); if (n && n.trim()) e.name = n.trim().slice(0, 40); },
     resize: d => Z.resizeEncl(ent(ui.parg), d.s, +d.d),
@@ -275,7 +298,7 @@
   });
   document.addEventListener('input', ev => {
     const r = ev.target.dataset.r; if (!r) return; const v = +ev.target.value;
-    if (r === 'ticket') Z.S.ticket = v; else { const b = ent(ui.parg); if (b) b.price = v; }
+    if (r === 'ticket') Z.S.ticket = v; else if (r === 'rbudget') Z.S.research.budget = v; else { const b = ent(ui.parg); if (b) b.price = v; }
     const o = $('#rv'); if (o) o.textContent = fmt(v);
   });
 
@@ -308,6 +331,7 @@
       <li><b>👷 Personnel</b> — soigneurs, agents de maintenance et vétérinaires travaillent sur le terrain ; caissiers, vendeurs, animateurs et agents de sécurité tiennent leur poste. Le panneau indique combien il en faut selon la taille du zoo.</li>
       <li><b>🏪 Services</b> — restauration, toilettes, bancs, poubelles et boutique gardent les visiteurs satisfaits.</li>
       <li><b>💶 Finances</b> — réglez le prix du billet. La réputation (★) attire le public et débloque de nouvelles espèces.</li>
+      <li><b>🔬 Recherche</b> — financez des projets et embauchez des chercheurs pour débloquer de nouvelles espèces, des habitats (désert, préhistoire), des attractions (petit train, grande roue, aquarium, montagnes russes…) et des améliorations de gestion.</li>
       <li><b>📈 Progression</b> — votre zoo gagne de l’expérience et monte de niveau (15 niveaux) : nouveaux habitats, espèces, bâtiments, employés et terrains. Les chantiers durent plusieurs heures et les animaux commandés sont livrés le lendemain.</li>
       <li><b>↔️ Déplacer</b> — glissez un enclos ou un bâtiment pour le déplacer ; agrandissez un enclos depuis sa fiche.</li>
       <li><b>🎯 Missions</b> — acceptez des missions, suivez vos objectifs et lancez la campagne de 5 scénarios. <b>📊 Stats</b> et <b>👁️ Vues</b> vous aident à piloter.</li></ol>
@@ -330,7 +354,7 @@
   // ---------- Carte : souris et tactile ----------
   const pts = new Map(); let drag = null, pinch = null;
   function ghostFor(tx, ty) {
-    if (ui.tool === 'shop' || ui.tool === 'decor') { if (!ui.arg) return null; const s = BL[ui.arg].size; return { x: tx, y: ty, w: s, h: s, type: ui.arg, ok: Z.freeRect(tx, ty, s, s) }; }
+    if (ui.tool === 'shop' || ui.tool === 'decor' || ui.tool === 'ride') { if (!ui.arg) return null; const s = BL[ui.arg].size; return { x: tx, y: ty, w: s, h: s, type: ui.arg, ok: Z.freeRect(tx, ty, s, s) }; }
     if (ui.tool === 'path') return { x: tx, y: ty, w: 1, h: 1, ok: Z.freeRect(tx, ty, 1, 1) };
     if (ui.tool === 'demo') return { x: tx, y: ty, w: 1, h: 1, ok: false };
     return null;
@@ -382,7 +406,7 @@
     if (d.pan) { if (!d.moved && ev.button === 0) { if (ui.tool === 'select') clickSelect(ev.clientX, ev.clientY); } }
     else if (d.mo) { const gh = ui.ghost; ui.ghost = null; if (gh && d.moved) Z.moveObj(d.mo, gh.x, gh.y); renderTools(); }
     else if (ui.tool === 'encl') { const r = ui.ghost; ui.ghost = null; if (r && r.w * r.h > 1) { const e = Z.buildEncl(r.x, r.y, r.w, r.h, ui.arg); if (e) { setTool('select'); openPanel('encl', e.id); } } renderTools(); }
-    else if (ui.tool === 'shop' || ui.tool === 'decor') { if (ui.arg) Z.place(ui.arg, t.x, t.y); if (ev.pointerType !== 'mouse') ui.ghost = null; }
+    else if (ui.tool === 'shop' || ui.tool === 'decor' || ui.tool === 'ride') { if (ui.arg) Z.place(ui.arg, t.x, t.y); if (ev.pointerType !== 'mouse') ui.ghost = null; }
     else if (ui.tool === 'demo') { Z.demolish(t.x, t.y); if (ui.sel && !ent(ui.parg)) closePanel(); ui.ghost = null; }
     updateTop();
   }

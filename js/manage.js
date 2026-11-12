@@ -150,8 +150,8 @@
       prog: S => { const a = allAnimals(); return 'Actuellement ' + Math.round(a.reduce((s, x) => s + x.happy, 0) / Math.max(1, a.length)) + ' %'; },
     },
     gift: {
-      can: S => S.level >= 3 && Object.keys(SP).some(k => !Z.speciesUnlocked(k)),
-      gen: S => { const k = Object.keys(SP).filter(k => !Z.speciesUnlocked(k)).sort((a, b) => SP[a].lvl - SP[b].lvl)[0], s = SP[k]; return { t: '🎁 Don d’un zoo partenaire : ' + s.e + ' ' + s.n, d: `Préparez un enclos « ${Z.BIOMES[s.b].name} » vide d’au moins ${s.space * Math.max(2, s.grp)} cases, relié à l’entrée. Vous recevrez un couple et l’espèce sera débloquée.`, sp: k, days: 12, money: 0, giftSp: k }; },
+      can: S => S.level >= 3 && Object.keys(SP).some(k => !Z.speciesUnlocked(k) && Z.biomeUnlocked(SP[k].b)),
+      gen: S => { const k = Object.keys(SP).filter(k => !Z.speciesUnlocked(k) && Z.biomeUnlocked(SP[k].b)).sort((a, b) => SP[a].lvl - SP[b].lvl)[0], s = SP[k]; return { t: '🎁 Don d’un zoo partenaire : ' + s.e + ' ' + s.n, d: `Préparez un enclos « ${Z.BIOMES[s.b].name} » vide d’au moins ${s.space * Math.max(2, s.grp)} cases, relié à l’entrée. Vous recevrez un couple et l’espèce sera débloquée.`, sp: k, days: 12, money: 0, giftSp: k }; },
       ok: (S, m) => !!giftEncl(m),
     },
     profit: {

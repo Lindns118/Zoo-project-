@@ -16,6 +16,10 @@ Jeu de gestion de zoo réaliste, jouable directement dans le navigateur (aucune 
 - **Progression** : 15 niveaux de zoo gagnés grâce à l'expérience (visiteurs satisfaits, naissances, nouvelles espèces, missions). Chaque niveau débloque habitats, espèces, bâtiments, employés et terrains, visibles sur une ligne de progression.
 - **Terrain** : on démarre sur une petite parcelle ; 14 parcelles voisines s'achètent selon le niveau.
 - **Temps réel de gestion** : les chantiers durent plusieurs heures de jeu, les animaux commandés sont livrés en 14 h, impôt de 20 % sur les bénéfices.
+- **Recherche** : un budget quotidien et des chercheurs produisent des points pour 19 projets (animaux, attractions, gestion).
+- **Nouvelles espèces** : 19 espèces supplémentaires à débloquer par la recherche, dont deux habitats inédits (désert, préhistorique avec dinosaures).
+- **Attractions** : mini-ferme, petit train, vivarium, amphithéâtre, grande roue, aquarium, cinéma 4D, montagnes russes, tenues par des opérateurs ; décors à thème.
+- **Simulation** : simulateur de prix du billet et d'effet des campagnes de publicité.
 - **Gestion** : statistiques avec courbes, prévisions à 3 jours, banque (trois types de prêts, faillite), campagnes de publicité.
 - **Missions** : contrats à accepter (inspection sanitaire, programme de conservation, dons d'animaux…) avec récompenses.
 - **Campagne** : cinq scénarios à objectifs et durée limitée, avec médailles, plus un mode libre.
