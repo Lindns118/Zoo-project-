@@ -278,7 +278,7 @@
     for (const e of Z.S.enclosures) for (const a of e.animals) {
       if (night || a.health < 25) continue;
       if (a.wait > 0) { a.wait -= dt; continue; }
-      const dx = a.tx - a.x, dy = a.ty - a.y, L = Math.hypot(dx, dy), d = SP[a.sp].spd * dt * (a.sick ? .5 : 1);
+      const dx = a.tx - a.x, dy = a.ty - a.y, L = Math.hypot(dx, dy), d = SP[a.sp].spd * 1.6 * dt * (a.sick ? .5 : 1);
       if (L <= d || L < .05) {
         a.wait = rnd(5, 60);
         a.tx = rnd(e.x + .6, e.x + e.w - .6); a.ty = rnd(e.y + .7, e.y + e.h - .5);
@@ -378,7 +378,7 @@
     if (Math.random() < .25) { const rs = [...new Set(S.buildings.filter(b => BL[b.type].cat === 'ride' && !v.c['r' + b.type]).map(b => b.type))]; if (rs.length && goBuilding(v, rs)) return; }
     if (v.kid && !v.c.play && Math.random() < .12) { v.c.play = 1; if (goBuilding(v, 'play')) return; }
     // flânerie : de temps en temps, une promenade vers un autre coin du parc
-    if (v.nseen && Math.random() < .05 && Z.pathList.length > 12) { const p = Z.findPath(tileOf(v), [pick(Z.pathList)]); if (p && p.length > 3 && p.length < 45) { v.path = p; v.st = 'walk'; v.goal = { k: 'stroll' }; return; } }
+    if (v.nseen && Math.random() < .1 && Z.pathList.length > 12) { const p = Z.findPath(tileOf(v), [pick(Z.pathList)]); if (p && p.length > 3 && p.length < 45) { v.path = p; v.st = 'walk'; v.goal = { k: 'stroll' }; return; } }
     let cand = S.enclosures.filter(e => e.animals.length && e.vp.length && !v.seen[e.id]);
     if (!v.map && cand.length) { const kn = cand.filter(e => Math.abs(e.x + e.w / 2 - v.x) + Math.abs(e.y + e.h / 2 - v.y) <= Z.SIGHT); if (kn.length) cand = kn; else if (Z.lostWander(v)) return; }
     cand = Z.wishFirst(v, cand);
@@ -440,7 +440,7 @@
     if (S.weather === 'rain') v.happy -= .02 * dt;
     const cp = Z.crowdPen(); if (cp > 0) { v.happy -= cp * dt; if (!v.c.crowd && Math.random() < .002 * dt) { v.c.crowd = 1; think(v, 'Il y a beaucoup trop de monde ici…'); } }
     if (v.st === 'walk') {
-      const arrived = moveAlong(v, dt, v.kid ? .56 : .62), t = tileOf(v);
+      const arrived = moveAlong(v, dt, v.kid ? .8 : .9), t = tileOf(v);
       if (t !== v.lt) {
         v.lt = t;
         // en longeant un enclos pas encore vu, on s'arrête un instant pour regarder
@@ -511,7 +511,7 @@
   }
   function staffUpdate(s, dt) {
     if (Z.onStrike()) return;
-    if (s.st === 'walk') { if (moveAlong(s, dt, .55)) { s.st = 'work'; s.t = s.task.dur; } }
+    if (s.st === 'walk') { if (moveAlong(s, dt, .85)) { s.st = 'work'; s.t = s.task.dur; } }
     else if (s.st === 'work') { s.t -= dt; if (s.t <= 0) { completeTask(s); Z.onTask(s); s.st = 'idle'; s.task = null; s.cool = 3; } }
     else { s.cool -= dt; if (s.cool <= 0) { assign(s); if (!s.task) s.cool = 15; } }
   }
@@ -560,9 +560,11 @@
     animalsMove(dt);
   }
   Z.advance = function (gm) { while (gm > 0) { const dt = Math.min(1, gm); step(dt); gm -= dt; } };
+  Z.DAY_PACE = .55;
   Z.tick = function (realSec) {
     const S = Z.S; if (!S.speed) return;
-    const fast = !Z.isOpen() && !S.visitors.length ? 4 : 1;
-    Z.advance(realSec * MIN_PER_SEC * S.speed * fast);
+    // Le jour s'écoule lentement pour laisser les visiteurs se promener ; la nuit, zoo fermé et vide, file en accéléré
+    const pace = Z.isOpen() || S.visitors.length ? Z.DAY_PACE : 4;
+    Z.advance(realSec * MIN_PER_SEC * S.speed * pace);
   };
 })();
