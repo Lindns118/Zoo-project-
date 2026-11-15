@@ -381,6 +381,7 @@
     if (v.nseen && Math.random() < .05 && Z.pathList.length > 12) { const p = Z.findPath(tileOf(v), [pick(Z.pathList)]); if (p && p.length > 3 && p.length < 45) { v.path = p; v.st = 'walk'; v.goal = { k: 'stroll' }; return; } }
     let cand = S.enclosures.filter(e => e.animals.length && e.vp.length && !v.seen[e.id]);
     if (!v.map && cand.length) { const kn = cand.filter(e => Math.abs(e.x + e.w / 2 - v.x) + Math.abs(e.y + e.h / 2 - v.y) <= Z.SIGHT); if (kn.length) cand = kn; else if (Z.lostWander(v)) return; }
+    cand = Z.wishFirst(v, cand);
     if (cand.length) {
       let best = null, bd = 1e9;
       // parcours efficace : l'enclos non vu le plus proche (ou le deuxième), et de temps en temps un enclos pris au hasard
@@ -424,7 +425,7 @@
     v.st = 'idle'; const g = v.act; v.act = null; if (!g) return;
     const e = Z.S.enclosures.find(e => e.id === g.id); if (!e || !e.animals.length) return;
     if (!g.n && e.vp.length > 1 && Math.random() < .75) { g.n = 1; const here = tileOf(v), near = e.vp.filter(t => t !== here && Math.abs(t % W - here % W) + Math.abs(((t / W) | 0) - ((here / W) | 0)) <= 5), p = near.length ? Z.findPath(here, [pick(near)]) : null; if (p && p.length < 12) { v.path = p; v.st = 'walk'; v.goal = g; return; } }
-    const sp = SP[e.animals[0].sp], hp = Z.avg(e, 'happy'); let gain = (clamp(Z.enclAppeal(e) * .17, 1.2, 8.5) + Z.beauty * 2.5) * Z.guideBonus() / (1 + .35 * Math.max(0, v.nseen - 3)) + Z.fanBonus(v, e); // les quatre premiers enclos comptent pleinement, les suivants émerveillent un peu moins // les visiteurs voient plusieurs enclos : chacun compte moins
+    const sp = SP[e.animals[0].sp], hp = Z.avg(e, 'happy'); let gain = (clamp(Z.enclAppeal(e) * .125, 1, 7) + Z.beauty * 2.5) * Z.guideBonus() / (1 + .35 * Math.max(0, v.nseen - 3)) + Z.fanBonus(v, e); // les quatre premiers enclos comptent pleinement, les suivants émerveillent un peu moins // les visiteurs voient plusieurs enclos : chacun compte moins
     if (hp < 40) { gain = -6; think(v, 'Ces ' + sp.pl + ' ont l’air malheureux 😟'); }
     else if (e.clean < 30) { gain -= 6; think(v, 'L’enclos des ' + sp.pl + ' est sale…'); }
     else if (e.animals.some(a => a.age < 1)) { gain += 3; think(v, 'Oh, un bébé ' + sp.n.toLowerCase() + ' ! 😍'); }
