@@ -83,12 +83,13 @@
   const oldSpawn = Z.onSpawn; Z.onSpawn = function (v) { oldSpawn(v); v.h0 = v.happy; if (Z.S.ticket > Z.fairPrice() * 1.25) v.c.price = 1; };
   const oldExit = Z.onExit; Z.onExit = function (v) {
     const before = v.happy; oldExit(v); const r = Z.S.rs; r.n++; r.h0 += v.h0 == null ? 50 : v.h0; r.h1 += v.happy; r.seen += v.nseen;
-    for (const k of ['wc', 'drink', 'food', 'bench', 'queue', 'crowd', 'price']) if (v.c[k]) r.c[k] = (r.c[k] || 0) + 1;
+    for (const k of ['wc', 'drink', 'food', 'bench', 'queue', 'crowd', 'price', 'lost']) if (v.c[k]) r.c[k] = (r.c[k] || 0) + 1;
     if (v.fav && !v.favSeen) r.c.fav = (r.c.fav || 0) + 1; if (before !== v.happy) { /* pénalité « fan déçu » déjà incluse */ }
   };
   const oldD = Z.onDaily; Z.onDaily = function () { if (oldD) oldD(); const S = Z.S; if (S.rs.n) S.rsY = S.rs; S.rs = blank(); };
   // causes d'insatisfaction : [libellé, points perdus par visiteur touché, conseil]
   const CAUSES = {
+    lost: ['🧭 Se sont perdus ou n’ont pas trouvé un service', 6, 'Distribuez des plans (🧑‍🤝‍🧑 Visiteurs › Orientation) ou posez des panneaux d’orientation.'],
     wc: ['🚻 N’ont pas trouvé de toilettes', 12, 'Construisez des toilettes, réparties dans le parc.'],
     drink: ['🥤 N’ont rien trouvé à boire', 8, 'Ajoutez une buvette ou un glacier.'],
     food: ['🍔 N’ont rien trouvé à manger', 8, 'Ajoutez un stand burger ou un restaurant.'],

@@ -68,9 +68,10 @@
     }
     for (const e of S.enclosures) e.vp = adjacent(e.x, e.y, e.w, e.h);
     Z.vpMap = {}; for (const e of S.enclosures) for (const t of e.vp) (Z.vpMap[t] = Z.vpMap[t] || []).push(e); // cases d'allée d'où l'on voit chaque enclos
-    const cover = Z.binCover = new Uint8Array(W * H); let beauty = 0, paths = 0;
+    const cover = Z.binCover = new Uint8Array(W * H); Z.signCover = new Uint8Array(W * H); let beauty = 0, paths = 0;
     for (const b of S.buildings) {
       const d = BL[b.type]; b.acc = S.ground[idx(b.x, b.y)] === 1 ? (reach[idx(b.x, b.y)] ? [idx(b.x, b.y)] : []) : adjacent(b.x, b.y, d.size, d.size); beauty += d.beauty || 0;
+      if (b.type === 'sign' && !b.bt) for (let y = b.y - 3; y <= b.y + 3; y++) for (let x = b.x - 3; x <= b.x + 3; x++) if (inb(x, y)) Z.signCover[idx(x, y)] = 1;
       if (b.type === 'bin') for (let y = b.y - 5; y <= b.y + 5; y++) for (let x = b.x - 5; x <= b.x + 5; x++) if (inb(x, y)) cover[idx(x, y)] = 1;
     }
     Z.pathList = []; for (let i = 0; i < W * H; i++) if (reach[i]) Z.pathList.push(i);
@@ -350,17 +351,20 @@
     const ts = [].concat(type), all = Z.S.buildings.filter(b => ts.includes(b.type) && b.acc.length && !b.bt && !b.closed); if (!all.length) return false;
     const goals = []; for (const b of all) for (const t of b.acc) goals.push(t);
     const p = Z.findPath(tileOf(v), goals); if (!p) return false;
+    if (!v.map && p.length > Z.SVC_RANGE) { v.lostNow = 1; return false; } // sans plan, il ignore qu'un service existe plus loin
     const end = p.length ? p[p.length - 1] : tileOf(v);
     v.path = p; v.st = 'walk'; const tb = all.find(b => b.acc.includes(end)); v.goal = { k: tb.type, id: tb.id }; return true;
   }
-  function complain(v, key, txt, pen) { if (!v.c[key]) { v.c[key] = 1; v.happy -= pen; think(v, txt); } }
+  function complain(v, key, txt, pen) {
+    if (v.lostNow) { v.lostNow = 0; if (!v.c.lost) { v.c.lost = 1; v.happy -= 6; think(v, 'Je cherche partout… un plan du zoo serait bien utile !'); } return; }
+    if (!v.c[key]) { v.c[key] = 1; v.happy -= pen; think(v, txt); } }
   function leave(v) {
     v.leaving = true; const p = Z.findPath(tileOf(v), [idx(EX, EY)]);
     if (!p) { v.x = EX + .5; v.y = EY + .5; v.path = []; } else v.path = p;
     v.st = 'walk'; v.goal = { k: 'exit' };
   }
   function decide(v) {
-    const S = Z.S;
+    const S = Z.S; v.lostNow = 0;
     if (v.leaving || !Z.isOpen() || v.happy < 15 || v.energy < 8) {
       // en partant, on passe par la boutique de souvenirs si la visite a plu
       if (!v.leaving && !v.gift && v.happy >= 45) { v.gift = true; if (Math.random() < .75 && goBuilding(v, 'gift')) return; }
@@ -375,7 +379,8 @@
     if (v.kid && !v.c.play && Math.random() < .12) { v.c.play = 1; if (goBuilding(v, 'play')) return; }
     // flânerie : de temps en temps, une promenade vers un autre coin du parc
     if (v.nseen && Math.random() < .05 && Z.pathList.length > 12) { const p = Z.findPath(tileOf(v), [pick(Z.pathList)]); if (p && p.length > 3 && p.length < 45) { v.path = p; v.st = 'walk'; v.goal = { k: 'stroll' }; return; } }
-    const cand = S.enclosures.filter(e => e.animals.length && e.vp.length && !v.seen[e.id]);
+    let cand = S.enclosures.filter(e => e.animals.length && e.vp.length && !v.seen[e.id]);
+    if (!v.map && cand.length) { const kn = cand.filter(e => Math.abs(e.x + e.w / 2 - v.x) + Math.abs(e.y + e.h / 2 - v.y) <= Z.SIGHT); if (kn.length) cand = kn; else if (Z.lostWander(v)) return; }
     if (cand.length) {
       let best = null, bd = 1e9;
       // parcours efficace : l'enclos non vu le plus proche (ou le deuxième), et de temps en temps un enclos pris au hasard
@@ -438,6 +443,7 @@
       if (t !== v.lt) {
         v.lt = t;
         // en longeant un enclos pas encore vu, on s'arrête un instant pour regarder
+        if (!v.map && Z.signCover[t]) { v.map = 1; think(v, 'Ah, un plan ! Je vois où aller.'); }
         const near = !v.leaving && Z.vpMap[t]; if (near) for (const e of near) if (!v.seen[e.id] && e.animals.length && Math.random() < .75) { v.st = 'busy'; v.t = rnd(3, 6); v.act = { k: 'encl', id: e.id, n: 1, quick: 1 }; v.path = null; v.goal = null; return; }
         if (S.litter[t] > 0) { v.happy -= .5; if (Math.random() < .03) think(v, 'Beurk, des déchets partout…'); }
         if (v.trash) { if (Z.binCover[t]) v.trash = 0; else if (Math.random() < .12) { S.litter[t] = Math.min(3, S.litter[t] + 1); v.trash = 0; } }
