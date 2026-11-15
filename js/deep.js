@@ -9,7 +9,7 @@
   const findAnimal = id => { for (const e of Z.S.enclosures) { const a = e.animals.find(a => a.id === id); if (a) return [e, a]; } return [null, null]; };
 
   // ================= 3. Files d'attente =================
-  const SVC = { food: 2, drink: 1, gift: 2, ice: 1, resto: 3, toilet: 1.5 }; // minutes par client
+  const SVC = { food: 1.2, drink: .6, gift: 1, ice: .6, resto: 1.5, toilet: .5 }; // minutes par client (un bloc de toilettes sert plusieurs personnes à la fois)
   const svcOf = b => { const d = BL[b.type]; return d.cat === 'ride' ? d.dur / (d.size * d.size * 2.5) : SVC[b.type] || 0; };
   Z.queueWait = b => Math.max(0, (b.qt || 0) - now());
   Z.queueLen = b => { const s = svcOf(b); return s ? Math.ceil(Z.queueWait(b) / s) : 0; };
@@ -18,7 +18,7 @@
     let wait = Z.queueWait(b); if (v.fast) wait *= .25;
     if (wait > 28 + rnd(0, 17)) { // trop d'attente : le visiteur renonce
       v.happy -= 5; v.thought = BL[b.type].name + ' : trop de queue, j’abandonne'; Z.thoughts.unshift(v.name + ' : ' + v.thought); if (Z.thoughts.length > 14) Z.thoughts.pop();
-      if (g.k === 'food' || g.k === 'resto') v.hunger = 42; else if (g.k === 'drink') v.thirst = 44; else if (g.k === 'toilet') v.bladder = 40; else v.c['r' + g.k] = 1;
+      if (g.k === 'food' || g.k === 'resto') v.hunger = 52; else if (g.k === 'drink') v.thirst = 56; else if (g.k === 'toilet') v.bladder = 55; else if (g.k === 'gift') { } else v.c['r' + g.k] = 1;
       v.c.queue = 1; Z.S.qLost = (Z.S.qLost || 0) + 1; return true;
     }
     b.qt = Math.max(now(), b.qt || 0) + svc;

@@ -72,6 +72,7 @@
       const d = BL[b.type]; b.acc = S.ground[idx(b.x, b.y)] === 1 ? (reach[idx(b.x, b.y)] ? [idx(b.x, b.y)] : []) : adjacent(b.x, b.y, d.size, d.size); beauty += d.beauty || 0;
       if (b.type === 'bin') for (let y = b.y - 5; y <= b.y + 5; y++) for (let x = b.x - 5; x <= b.x + 5; x++) if (inb(x, y)) cover[idx(x, y)] = 1;
     }
+    Z.pathList = []; for (let i = 0; i < W * H; i++) if (reach[i]) Z.pathList.push(i);
     for (let i = 0; i < W * H; i++) { if (S.ground[i] === 1) paths++; else { S.litter[i] = 0; if (S.ground[i] > 1 && Z.owned(i % W, (i / W) | 0)) beauty += .1; } }
     Z.pathCount = paths; Z.beauty = clamp(beauty / Math.max(4, paths / 10), 0, 1);
     if (removed) {
@@ -356,7 +357,11 @@
   }
   function decide(v) {
     const S = Z.S;
-    if (v.leaving || !Z.isOpen() || v.happy < 15 || v.energy < 8) return leave(v);
+    if (v.leaving || !Z.isOpen() || v.happy < 15 || v.energy < 8) {
+      // en partant, on passe par la boutique de souvenirs si la visite a plu
+      if (!v.leaving && !v.gift && v.happy >= 45) { v.gift = true; if (Math.random() < .75 && goBuilding(v, 'gift')) return; }
+      return leave(v);
+    }
     if (v.bladder < 25) { if (goBuilding(v, 'toilet')) return; complain(v, 'wc', 'Il n’y a pas de toilettes ici ?! 😣', 12); v.bladder = 32; }
     if (v.thirst < 30) { if (goBuilding(v, 'drink')) return; complain(v, 'drink', 'J’ai soif et rien à boire…', 8); v.thirst = 36; }
     if (v.hunger < 25) { if (goBuilding(v, ['food', 'resto'])) return; complain(v, 'food', 'J’ai faim, il n’y a rien à manger !', 8); v.hunger = 32; }
@@ -364,27 +369,31 @@
     if (!v.c.ice && Math.random() < .05) { v.c.ice = 1; if (goBuilding(v, 'ice')) return; }
     if (Math.random() < .25) { const rs = [...new Set(S.buildings.filter(b => BL[b.type].cat === 'ride' && !v.c['r' + b.type]).map(b => b.type))]; if (rs.length && goBuilding(v, rs)) return; }
     if (v.kid && !v.c.play && Math.random() < .12) { v.c.play = 1; if (goBuilding(v, 'play')) return; }
+    // flânerie : de temps en temps, une promenade vers un autre coin du parc
+    if (v.nseen && Math.random() < .1 && Z.pathList.length > 12) { const p = Z.findPath(tileOf(v), [pick(Z.pathList)]); if (p && p.length > 3 && p.length < 45) { v.path = p; v.st = 'walk'; v.goal = { k: 'stroll' }; return; } }
     const cand = S.enclosures.filter(e => e.animals.length && e.vp.length && !v.seen[e.id]);
     if (cand.length) {
       let best = null, bd = 1e9;
-      for (let i = 0; i < 3; i++) { const e = pick(cand), d = Math.abs(e.x + e.w / 2 - v.x) + Math.abs(e.y + e.h / 2 - v.y); if (d < bd) { bd = d; best = e; } }
+      const tries = Math.random() < .25 ? 1 : v.nseen ? 4 : 2; // le plus souvent un enclos proche, parfois un lointain
+      for (let i = 0; i < tries; i++) { const e = pick(cand), d = Math.abs(e.x + e.w / 2 - v.x) + Math.abs(e.y + e.h / 2 - v.y); if (d < bd) { bd = d; best = e; } }
       const p = Z.findPath(tileOf(v), [pick(best.vp)]);
       if (p) { v.path = p; v.st = 'walk'; v.goal = { k: 'encl', id: best.id }; return; }
       v.seen[best.id] = 1; return;
     }
     if (!v.nseen) { v.happy -= 30; think(v, 'Il n’y a rien à voir dans ce zoo !'); return leave(v); }
-    if (!v.gift) { v.gift = true; if (Math.random() < .6 && goBuilding(v, 'gift')) return; }
+    if (!v.gift && v.happy >= 45) { v.gift = true; if (Math.random() < .75 && goBuilding(v, 'gift')) return; }
     leave(v);
   }
   function shopBuy(v, b, mult) {
     const d = BL[b.type], wtp = d.price * rnd(1.15, 2.1) * mult;
     if (b.price > wtp || v.money < b.price) { v.happy -= 4; think(v, d.name + ' : c’est trop cher !'); return false; }
-    v.money -= b.price; Z.earn('shops', b.price); Z.spend('goods', d.goods); b.sold++; v.happy += 4; Z.fxAdd(v.x, v.y, '+' + Math.round(b.price) + ' €', '#1f7a3d'); return true;
+    v.money -= b.price; Z.earn('shops', b.price); Z.spend('goods', d.goods); b.sold++; v.happy += 3; Z.fxAdd(v.x, v.y, '+' + Math.round(b.price) + ' €', '#1f7a3d'); return true;
   }
   function arrive(v) {
     const S = Z.S, g = v.goal; v.goal = null; v.st = 'idle'; if (!g) return;
-    if (g.k === 'exit') { v.gone = true; Z.onExit(v); Z.xp(Math.max(0, v.happy - 25) / 110); S.ratings.push(clamp((v.happy - 20) / 16, 0, 5)); if (S.ratings.length > 80) S.ratings.splice(0, S.ratings.length - 80); return; }
-    if (g.k === 'encl') { v.st = 'busy'; v.t = rnd(18, 35); v.act = g; return; }
+    if (g.k === 'exit') { v.gone = true; Z.onExit(v); Z.xp(Math.max(0, v.happy - 25) / 150); S.ratings.push(clamp((v.happy - 20) / 16, 0, 5)); if (S.ratings.length > 80) S.ratings.splice(0, S.ratings.length - 80); return; }
+    if (g.k === 'stroll') return;
+    if (g.k === 'encl') { v.st = 'busy'; v.t = rnd(8, 14); v.act = g; return; }
     const b = S.buildings.find(b => b.id === g.id); if (!b) return;
     if (Z.queueFor(v, b, g)) return;
     serve(v, b, g);
@@ -404,21 +413,22 @@
   function finishBusy(v) {
     v.st = 'idle'; const g = v.act; v.act = null; if (!g) return;
     const e = Z.S.enclosures.find(e => e.id === g.id); if (!e || !e.animals.length) return;
-    const sp = SP[e.animals[0].sp], hp = Z.avg(e, 'happy'); let gain = (clamp(Z.enclAppeal(e) * .3, 1, 14) + Z.beauty * 3) * Z.guideBonus() + Z.fanBonus(v, e);
+    if (!g.n && e.vp.length > 1 && Math.random() < .75) { g.n = 1; const here = tileOf(v), near = e.vp.filter(t => t !== here && Math.abs(t % W - here % W) + Math.abs(((t / W) | 0) - ((here / W) | 0)) <= 5), p = near.length ? Z.findPath(here, [pick(near)]) : null; if (p && p.length < 12) { v.path = p; v.st = 'walk'; v.goal = g; return; } }
+    const sp = SP[e.animals[0].sp], hp = Z.avg(e, 'happy'); let gain = (clamp(Z.enclAppeal(e) * .19, 1.2, 9) + Z.beauty * 2.5) * Z.guideBonus() + Z.fanBonus(v, e); // les visiteurs voient plusieurs enclos : chacun compte moins
     if (hp < 40) { gain = -6; think(v, 'Ces ' + sp.pl + ' ont l’air malheureux 😟'); }
     else if (e.clean < 30) { gain -= 6; think(v, 'L’enclos des ' + sp.pl + ' est sale…'); }
     else if (e.animals.some(a => a.age < 1)) { gain += 3; think(v, 'Oh, un bébé ' + sp.n.toLowerCase() + ' ! 😍'); }
     else if (Math.random() < .5) think(v, pick(['J’adore les ' + sp.pl + ' !', 'Les ' + sp.pl + ' sont magnifiques', 'Regarde les ' + sp.pl + ' ! ' + sp.e]));
-    if (gain > 5) Z.fxAdd(v.x, v.y, '♥', '#e53935');
+    if (gain > 3) Z.fxAdd(v.x, v.y, '♥', '#e53935');
     v.happy = clamp(v.happy + gain, 0, 100); v.seen[e.id] = 1; v.nseen++;
   }
   function visitorUpdate(v, dt) {
     const S = Z.S;
-    v.hunger -= .28 * dt; v.thirst -= .4 * dt * Z.evMod('thirst'); v.bladder -= .3 * dt; v.energy -= .2 * dt;
+    v.hunger -= .22 * dt; v.thirst -= .28 * dt * Z.evMod('thirst'); v.bladder -= .22 * dt; v.energy -= .2 * dt;
     if (S.weather === 'rain') v.happy -= .02 * dt;
     const cp = Z.crowdPen(); if (cp > 0) { v.happy -= cp * dt; if (!v.c.crowd && Math.random() < .002 * dt) { v.c.crowd = 1; think(v, 'Il y a beaucoup trop de monde ici…'); } }
     if (v.st === 'walk') {
-      const arrived = moveAlong(v, dt, v.kid ? .17 : .2), t = tileOf(v);
+      const arrived = moveAlong(v, dt, v.kid ? .46 : .5), t = tileOf(v);
       if (t !== v.lt) {
         v.lt = t;
         if (S.litter[t] > 0) { v.happy -= .5; if (Math.random() < .03) think(v, 'Beurk, des déchets partout…'); }
@@ -486,7 +496,7 @@
   }
   function staffUpdate(s, dt) {
     if (Z.onStrike()) return;
-    if (s.st === 'walk') { if (moveAlong(s, dt, .27)) { s.st = 'work'; s.t = s.task.dur; } }
+    if (s.st === 'walk') { if (moveAlong(s, dt, .55)) { s.st = 'work'; s.t = s.task.dur; } }
     else if (s.st === 'work') { s.t -= dt; if (s.t <= 0) { completeTask(s); Z.onTask(s); s.st = 'idle'; s.task = null; s.cool = 3; } }
     else { s.cool -= dt; if (s.cool <= 0) { assign(s); if (!s.task) s.cool = 15; } }
   }

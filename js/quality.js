@@ -97,6 +97,12 @@
     h += Z.SETS.map(s => { const got = s.sp.filter(k => here.has(k)).length, done = S.sets[s.k]; return `<div class="card ${done ? 'done' : ''}"><div class="ctitle"><b>${done ? '✅ ' : ''}${s.n}</b><b>${done ? 'terminée' : got + ' / ' + s.sp.length + ' · ' + fmt(s.r)}</b></div>${s.sp.length <= 8 ? `<p style="font-size:20px;margin:4px 0">${s.sp.map(k => `<span title="${SP[k].n}" style="opacity:${here.has(k) ? 1 : .25}">${SP[k].e}</span>`).join(' ')}</p>` : ''}</div>`; }).join('');
     return h + oldStock();
   };
+  // services : combien il en faut pour l'affluence du parc
+  const SERV = [['🚻 Toilettes', ['toilet'], 150], ['🥤 Boissons et glaces', ['drink', 'ice'], 120], ['🍔 Restauration', ['food', 'resto'], 100], ['🪑 Bancs', ['bench'], 60]];
+  Z.html.services = function () {
+    const S = Z.S, pk = Math.max(20, Z.crowd());
+    return '<h3>Services</h3><p class="muted">Pour ' + pk + ' visiteurs présents au plus fort de la journée. Trop peu de services : les visiteurs passent leur temps dans les files au lieu de voir les animaux.</p>' + SERV.map(q => { const have = S.buildings.filter(b => q[1].includes(b.type) && !b.bt && !b.closed && b.acc.length).length, need = Math.ceil(pk / q[2]); return row(q[0] + ' <span class="muted">(1 pour ' + q[2] + ')</span>', '<span class="' + (have >= need ? 'good' : 'bad') + '">' + have + ' / ' + need + '</span>'); }).join('') + '<p class="muted">Répartissez-les dans tout le parc : un visiteur va toujours au plus proche.</p>';
+  };
   const oldVis = Z.html.visitors;
-  Z.html.visitors = () => row('Exigence du public (niveau ' + Z.S.level + ')', Z.expect() > 0 ? '<span class="bad">−' + Z.expect().toFixed(1).replace('.', ',') + ' de satisfaction à l’arrivée</span>' : 'aucune') + oldVis();
+  Z.html.visitors = () => row('Exigence du public (niveau ' + Z.S.level + ')', Z.expect() > 0 ? '<span class="bad">−' + Z.expect().toFixed(1).replace('.', ',') + ' de satisfaction à l’arrivée</span>' : 'aucune') + Z.html.services() + oldVis();
 })();
