@@ -14,7 +14,7 @@ Jeu de gestion de zoo réaliste, jouable directement dans le navigateur (aucune 
 - **Capacité d'accueil** : le nombre de visiteurs que le parc peut recevoir dépend des allées, des enclos visibles, des attractions et des commerces ; au-delà, les arrivants renoncent et les visiteurs sont gênés. Le panneau Visiteurs détaille d'où vient l'affluence. Trois niveaux de difficulté.
 - **Surpopulation** : occupation affichée au-dessus de chaque enclos ; plus de naissances à 95 %, animaux malheureux à 105 %, refus de manger à 120 %, bagarres à 130 %, signalées par une fenêtre d'alerte illustrée.
 - **Marché de vente** : d'autres zoos achètent vos adultes au-dessus du prix ordinaire.
-- **Vue isométrique** : sol en losanges, bâtiments en volume, clôtures et personnages triés en profondeur.
+- **Vue isométrique** : sol en dégradé naturel sur un socle de terre, eau avec rivage et reflets, allées pavées, ombres portées, visiteurs et employés dessinés, coucher de soleil, lumières la nuit, ombres de nuages.
 - **Cartes du monde** : six régions (France, Kenya, Canada, Brésil, Australie, Japon) avec leur relief, leur climat, leur public et leurs habitats naturels moins chers ; une sauvegarde par carte.
 - **Plan de construction** : les tracés s'ajoutent à un plan qu'on valide ou annule d'un coup ; bancs et poubelles se posent sur les allées ; arbres à défricher.
 

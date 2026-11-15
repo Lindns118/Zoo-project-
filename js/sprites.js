@@ -162,7 +162,7 @@
     const A = [c0, c1, mB, mA], B = [c3, c2, mB, mA], ya = c0[1] + c1[1], yb = c3[1] + c2[1];
     tri(c, flat(ya < yb ? A : B), sh(roof, .82)); tri(c, flat(ya < yb ? B : A), roof);
     c.fillStyle = '#6b4a2f'; c.fillRect(door[0] - 3.5, door[1] - up * .55, 7, up * .55);
-    c.fillStyle = '#bfe3f2'; c.fillRect(win[0] - 4, win[1] - up * .72, 8, up * .34); c.strokeStyle = '#fff'; c.lineWidth = 1; c.strokeRect(win[0] - 4, win[1] - up * .72, 8, up * .34);
+    c.fillStyle = Z.isNight() ? '#ffd866' : '#bfe3f2'; c.fillRect(win[0] - 4, win[1] - up * .72, 8, up * .34); c.strokeStyle = '#fff'; c.lineWidth = 1; c.strokeRect(win[0] - 4, win[1] - up * .72, 8, up * .34);
     if (sign) { const sx = (mA[0] + mB[0]) / 2, sy = (mA[1] + mB[1]) / 2 - 7; c.fillStyle = '#fff'; c.beginPath(); c.arc(sx, sy, 8.5, 0, 7); c.fill(); c.strokeStyle = roof; c.lineWidth = 2; c.stroke(); I.emoji(c, sign, sx, sy + .5, 11); }
   }
   const circ = (c, cx, cy, r, n, f) => { for (let i = 0; i < n; i++) { const an = i / n * 6.283; f(I.px(cx + Math.cos(an) * r, cy + Math.sin(an) * r), I.py(cx + Math.cos(an) * r, cy + Math.sin(an) * r), an, i); } };

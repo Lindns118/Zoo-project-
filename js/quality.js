@@ -32,7 +32,7 @@
 
   // ================= Effets visuels : cœurs et pièces qui s'envolent =================
   Z.fx = [];
-  Z.fxAdd = function (x, y, txt, col) { if (Z.silentLevel || document.hidden) return; if (Z.fx.length > 70) Z.fx.shift(); Z.fx.push({ x, y, txt, col, t: performance.now() }); };
+  Z.fxAdd = function (x, y, txt, col) { if (Z.silentLevel || document.hidden) return; const now = performance.now(); if (Z.fx.some(f => now - f.t < 450 && Math.abs(f.x - x) + Math.abs(f.y - y) < 1.2)) return; if (Z.fx.length > 70) Z.fx.shift(); Z.fx.push({ x, y, txt, col, t: performance.now() }); };
 
   // ================= Nouveautés, collections, paliers =================
   Z.SETS = [
