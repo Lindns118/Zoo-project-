@@ -1,10 +1,32 @@
 // Zoo Project — dessins des animaux et des bâtiments (plus d'émojis sur la carte)
 (function () {
   const SP = Z.SPECIES, BL = Z.BUILDINGS, I = Z.iso;
-  const el = (c, x, y, rx, ry, col) => { c.fillStyle = col; c.beginPath(); c.ellipse(x, y, Math.abs(rx), Math.abs(ry), 0, 0, 7); c.fill(); };
+  const pc = new Map();
+  function rgb(col) { let v = pc.get(col); if (v !== undefined) return v; v = null; if (col[0] === '#') { let h = col.slice(1); if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2]; const n = parseInt(h, 16); if (!isNaN(n)) v = [n >> 16, (n >> 8) & 255, n & 255]; } else if (col.startsWith('rgb(')) { const m = col.match(/\d+/g); if (m) v = [+m[0], +m[1], +m[2]]; } pc.set(col, v); return v; }
+  const tone = (col, f) => { const v = rgb(col); return v ? 'rgb(' + (Math.min(255, v[0] * f) | 0) + ',' + (Math.min(255, v[1] * f) | 0) + ',' + (Math.min(255, v[2] * f) | 0) + ')' : col; };
+  // ellipse : les grandes formes (corps, tête) reçoivent un dégradé de lumière et un fin contour, pour donner du volume
+  const el = (c, x, y, rx, ry, col, flat) => {
+    rx = Math.abs(rx); ry = Math.abs(ry); c.beginPath(); c.ellipse(x, y, rx, ry, 0, 0, 7);
+    if (!flat && rx >= 2.8 && ry >= 2.2 && rgb(col)) { const g = c.createRadialGradient(x - rx * .35, y - ry * .45, Math.min(rx, ry) * .15, x, y, Math.max(rx, ry) * 1.05); g.addColorStop(0, tone(col, 1.17)); g.addColorStop(.55, col); g.addColorStop(1, tone(col, .76)); c.fillStyle = g; c.fill(); c.strokeStyle = 'rgba(40,25,10,.32)'; c.lineWidth = .45; c.stroke(); }
+    else { c.fillStyle = col; c.fill(); }
+  };
+  // œil de dessin animé : grand, brillant, qui cligne ; la paupière et le sourcil suivent l'humeur
+  function eye(c, x, y, r, o, iris) {
+    const md = o.mood;
+    if (md === 'sleep' || o.blink) { c.strokeStyle = '#2a1a10'; c.lineWidth = Math.max(.6, r * .28); c.lineCap = 'round'; c.beginPath(); c.arc(x, y - r * .2, r * .8, .15 * Math.PI, .85 * Math.PI); c.stroke(); return; }
+    c.fillStyle = '#fff'; c.beginPath(); c.ellipse(x, y, r, r * 1.12, 0, 0, 7); c.fill(); c.strokeStyle = 'rgba(30,20,10,.55)'; c.lineWidth = Math.max(.3, r * .12); c.stroke();
+    const dx = r * .22, dy = md === 'sad' || md === 'sick' ? r * .28 : r * .05;
+    c.fillStyle = md === 'sick' ? '#7a9a3a' : iris || '#6b3f1d'; c.beginPath(); c.arc(x + dx, y + dy, r * .68, 0, 7); c.fill();
+    c.fillStyle = '#17110c'; c.beginPath(); c.arc(x + dx, y + dy, r * .4, 0, 7); c.fill();
+    c.fillStyle = '#fff'; c.beginPath(); c.arc(x + dx - r * .22, y + dy - r * .3, r * .24, 0, 7); c.fill();
+    if (md === 'sad' || md === 'sick') { c.fillStyle = o.lid || tone(o.c, .9); c.beginPath(); c.ellipse(x, y - r * .1, r * 1.08, r * 1.15, 0, Math.PI * 1.02, Math.PI * 1.98); c.closePath(); c.fill(); c.strokeStyle = '#2a1a10'; c.lineWidth = Math.max(.5, r * .2); c.beginPath(); c.moveTo(x - r * 1.1, y - r * 1.5); c.lineTo(x + r * .9, y - r * .95); c.stroke(); }
+    else if (md === 'happy') { c.strokeStyle = '#2a1a10'; c.lineWidth = Math.max(.4, r * .16); c.beginPath(); c.arc(x, y - r * .1, r * 1.25, Math.PI * 1.2, Math.PI * 1.8); c.stroke(); }
+  }
+  function mouth(c, x, y, r, o) { c.strokeStyle = '#2a1a10'; c.lineWidth = Math.max(.5, r * .3); c.lineCap = 'round'; c.beginPath(); if (o.mood === 'sad' || o.mood === 'sick') c.arc(x, y + r * 1.1, r, Math.PI * 1.2, Math.PI * 1.8); else c.arc(x, y - r * .5, r, Math.PI * .15, Math.PI * .85); c.stroke(); }
+  function limb(c, x, top, dx, col, lw) { ln(c, [x, top, x + dx * .3 - .4, top * .45, x + dx, -lw * .3], col, lw); el(c, x + dx + lw * .3, -lw * .34, lw * .8, lw * .44, tone(col, .55), true); }
   const ln = (c, p, col, w) => { c.strokeStyle = col; c.lineWidth = w; c.lineCap = 'round'; c.lineJoin = 'round'; c.beginPath(); c.moveTo(p[0], p[1]); for (let i = 2; i < p.length; i += 2) c.lineTo(p[i], p[i + 1]); c.stroke(); };
   const tri = (c, p, col) => { c.fillStyle = col; c.beginPath(); c.moveTo(p[0], p[1]); for (let i = 2; i < p.length; i += 2) c.lineTo(p[i], p[i + 1]); c.closePath(); c.fill(); };
-  const sh = (hex, f) => I.shade(hex, f);
+  const sh = (col, f) => tone(col, f);
   const hs = (i, j) => (((i * 73856093) ^ (j * 19349663)) >>> 0) % 1000 / 1000;
 
   // t = silhouette · c = robe · c2 = ventre · L/H = corps · leg/neck/hd = pattes, cou, tête · pat = motif
@@ -53,12 +75,12 @@
   };
 
   function quad(c, o, ph, m, baby, lie, a) {
-    const L = o.L || 16, Hb = o.H || 9, leg = (o.leg || 8) * (baby ? .85 : 1) * (lie ? .12 : 1), nk = (o.neck || 2) * (baby ? .8 : 1), hd = (o.hd || 4.6) * (baby ? 1.18 : 1);
-    const c1 = o.c, dk = sh(c1, .74), lc = o.lc || c1, lw = o.lw || 2.6, by = -(leg + Hb / 2), sw = lie ? 0 : Math.sin(ph) * 2.4;
-    ln(c, [-L * .3 + 1.6, by + 1, -L * .3 + 1.6 - sw, 0], sh(lc, .7), lw); ln(c, [L * .3 + 1.6, by + 1, L * .3 + 1.6 + sw, 0], sh(lc, .7), lw);
-    if (o.tail !== 0) { const tl = o.tail || 6, tx = -L / 2 - tl * .7, ty = by + tl * .45; ln(c, [-L / 2 + 1.5, by - 1, tx, ty], o.tc || dk, o.tw || 1.5); if (o.tuft) el(c, tx, ty, 1.9, 1.9, o.tuft); }
+    const L = o.L || 16, Hb = o.H || 9, leg = (o.leg || 8) * (baby ? .85 : 1) * (lie ? .12 : 1), nk = (o.neck || 2) * (baby ? .8 : 1), hd = (o.hd || 4.6) * (baby ? 1.55 : 1.28), t = o.t || 0, br = lie ? 0 : Math.sin(t * 2.2) * .28;
+    const c1 = o.c, dk = sh(c1, .74), lc = o.lc || c1, lw = o.lw || 2.6, by = -(leg + Hb / 2), sw = lie ? 0 : Math.sin(ph) * 2.4, wag = lie ? 0 : Math.sin(t * (o.mood === 'happy' ? 5 : 1.6)) * (o.mood === 'happy' ? 1.8 : .7);
+    limb(c, -L * .3 + 1.6, by + 1, -sw, sh(lc, .7), lw); limb(c, L * .3 + 1.6, by + 1, sw, sh(lc, .7), lw);
+    if (o.tail !== 0) { const tl = o.tail || 6, tx = -L / 2 - tl * .7, ty = by + tl * .45 - wag; ln(c, [-L / 2 + 1.5, by - 1, -L / 2 - tl * .35, by + tl * .1 - wag * .4, tx, ty], o.tc || dk, o.tw || 1.5); if (o.tuft) el(c, tx, ty, 1.9, 1.9, o.tuft); }
     if (o.flat) el(c, -L / 2 - 3, by + 2, 4.5, 1.8, '#3d2a18');
-    el(c, 0, by, L / 2, Hb / 2, c1);
+    el(c, 0, by - br, L / 2, Hb / 2 + br, c1);
     if (o.hump) el(c, -1, by - Hb * .42, L * .24, Hb * .34, c1);
     if (o.wool) for (let i = -2; i <= 2; i++) el(c, i * L * .17, by - Hb * .38, L * .13, Hb * .22, c1);
     c.save(); c.beginPath(); c.ellipse(0, by, L / 2, Hb / 2, 0, 0, 7); c.clip();
@@ -66,19 +88,23 @@
     if (o.pat === 'stripes') for (let i = -3; i <= 3; i++) ln(c, [i * L * .13, by - Hb, i * L * .13 - 1.2, by + Hb], o.pc, 1.1);
     if (o.pat === 'spots' || (baby && o.babySpots)) for (let i = 0; i < 11; i++) el(c, (hs(i, 3) - .5) * L * .9, by + (hs(3, i) - .5) * Hb * .8, 1.2, 1, o.pc || '#fff');
     c.restore();
-    ln(c, [-L * .3, by + 1, -L * .3 + sw, 0], lc, lw); ln(c, [L * .3, by + 1, L * .3 - sw, 0], lc, lw);
-    const hx = L / 2 + nk * .42 + hd * .45, hy = by - Hb * .22 - nk;
+    limb(c, -L * .3, by + 1, sw, lc, lw); limb(c, L * .3, by + 1, -sw, lc, lw);
+    const hx = L / 2 + nk * (lie ? .75 : .42) + hd * .45, hy = (lie ? by + Hb * .12 - nk * .12 : by - Hb * .22 - nk) - br + (sw ? Math.abs(sw) * .12 : 0);
     ln(c, [L / 2 - 2.6, by - Hb * .12, hx - hd * .35, hy + hd * .3], c1, o.nw || Hb * .52);
     if (o.pat === 'spots' && nk > 8) for (let i = 1; i < 5; i++) el(c, L / 2 - 2 + (hx - L / 2) * i / 5, by - Hb * .1 + (hy - by) * i / 5, 1, 1, o.pc);
     if (o.mane2) ln(c, [L / 2 - 3, by - Hb * .4, hx - hd * .6, hy - hd * .5], o.mane2, 1.6);
-    if (m && !baby && o.mane) el(c, hx - hd * .55, hy + .6, hd * 1.55, hd * 1.5, o.mane);
-    if (o.bigEar) el(c, hx - hd * .7, hy + hd * .1, hd * .85, hd * 1.05, sh(c1, .86));
+    if (m && !baby && o.mane) { for (let i = 0; i < 9; i++) { const an = Math.PI * (.35 + i * .2); el(c, hx - hd * .35 + Math.cos(an) * hd * 1.05, hy + .4 + Math.sin(an) * hd * 1.05, hd * .62, hd * .62, i % 2 ? o.mane : tone(o.mane, 1.25), true); } el(c, hx - hd * .45, hy + .5, hd * 1.2, hd * 1.2, o.mane); }
+    if (o.bigEar) { el(c, hx - hd * .75, hy + hd * .05, hd * .95, hd * 1.15, sh(c1, .9)); el(c, hx - hd * .7, hy + hd * .12, hd * .55, hd * .75, '#d9a9a4', true); }
     el(c, hx, hy, hd, hd * .82, c1);
     if (o.patch) el(c, hx + hd * .3, hy - hd * .1, hd * .34, hd * .42, '#222');
     if (o.mask) el(c, hx + hd * .25, hy - hd * .1, hd * .5, hd * .3, '#333');
     if (!o.trunk) el(c, hx + hd * .75, hy + hd * .25, hd * (o.sn || .55), hd * .42, o.sc || (o.c2 || c1));
     if (o.ear !== 0) { const e = o.ear || 1.5; if (o.earP) tri(c, [hx - hd * .7, hy - hd * .5, hx - hd * .3, hy - hd * 1.5, hx, hy - hd * .6], o.ec || dk); else el(c, hx - hd * .45, hy - hd * .78, e, e * 1.2, o.ec || dk); }
-    el(c, hx + hd * .3, hy - hd * .12, .85, .85, '#111');
+    if (o.pat === 'stripes') { c.save(); c.beginPath(); c.ellipse(hx, hy, hd, hd * .82, 0, 0, 7); c.clip(); for (let i = -1; i <= 1; i++) ln(c, [hx - hd * .55 + i * hd * .32, hy - hd, hx - hd * .35 + i * hd * .32, hy - hd * .25], o.pc, .9); c.restore(); }
+    if (!o.trunk) el(c, hx + hd * (.75 + (o.sn || .55) * .62), hy + hd * .1, hd * .17, hd * .13, o.nose || '#2a1a14', true);
+    eye(c, hx + hd * .56, hy - hd * .2, hd * .27, o); eye(c, hx + hd * .04, hy - hd * .18, hd * .34, o);
+    if (!o.trunk) mouth(c, hx + hd * .72, hy + hd * .46, hd * .24, o);
+    if (baby || o.mood === 'happy') el(c, hx - hd * .2, hy + hd * .32, hd * .2, hd * .13, 'rgba(240,120,130,.45)', true);
     if (o.beard) ln(c, [hx + hd * .5, hy + hd * .6, hx + hd * .4, hy + hd * 1.3], dk, 1.4);
     if (o.trunk) { ln(c, [hx + hd * .7, hy + hd * .1, hx + hd * 1.3, hy + hd * 1.2, hx + hd * 1.1, hy + hd * 2.3 + (lie ? -3 : 0)], c1, hd * .42); if (!baby) ln(c, [hx + hd * .6, hy + hd * .55, hx + hd * (m ? 1.9 : 1.4), hy + hd * .9], '#fbf6e6', 1.5); }
     if (baby) return;
@@ -91,7 +117,7 @@
   }
   function bird(c, o, ph, m, baby, lie) {
     const b = o.b, c1 = !m && o.fc ? o.fc : o.c;
-    if (b === 'peng') { el(c, 0, -8, 5.2, 8, c1); el(c, 1, -7, 3.4, 6, '#fff'); el(c, 0, -15.5, 3.6, 3.4, c1); tri(c, [3, -16, 6.5, -15, 3, -14.3], '#f2a020'); el(c, 1.6, -16, .7, .7, '#fff'); ln(c, [-2, 0, 1, 0], '#f2a020', 2); ln(c, [2, 0, 5, 0], '#f2a020', 2); ln(c, [-4.5, -10, -6 - Math.sin(ph) * 1.5, -4], c1, 2.2); return; }
+    if (b === 'peng') { el(c, 0, -8, 5.2, 8, c1); el(c, 1, -7, 3.4, 6, '#fff'); el(c, 0, -15.5, 4.2, 4, c1); tri(c, [3.4, -15.6, 7.4, -14.4, 3.4, -13.4], '#f2a020'); eye(c, 1.5, -16.3, 1.5, o); ln(c, [-2, 0, 1, 0], '#f2a020', 2); ln(c, [2, 0, 5, 0], '#f2a020', 2); ln(c, [-4.5, -10, -6 - Math.sin(ph) * 1.5, -4], c1, 2.2); return; }
     const leg = b === 'tall' ? 13 : b === 'swan' ? 2 : 5, L = b === 'small' ? 9 : 12, Hh = b === 'small' ? 7 : 8, by = -(lie ? 2 : leg) - Hh / 2, sw = lie ? 0 : Math.sin(ph) * 2;
     if (!lie && b !== 'swan') { ln(c, [-1, by + 2, -1 + sw, 0], b === 'tall' ? '#d9607e' : '#c9952a', 1.2); ln(c, [2, by + 2, 2 - sw, 0], b === 'tall' ? '#d9607e' : '#c9952a', 1.2); }
     if (b === 'peacock' && m && !baby) { for (let i = 0; i < 11; i++) { const an = -Math.PI * (.12 + i * .076), r = 17; ln(c, [-3, by, -3 + Math.cos(an) * r * -1, by + Math.sin(an) * r], '#2e9d6a', 2.4); el(c, -3 - Math.cos(an) * r, by + Math.sin(an) * r, 2, 2, '#1b4fa8'); el(c, -3 - Math.cos(an) * r, by + Math.sin(an) * r, .9, .9, '#f2c230'); } }
@@ -100,8 +126,8 @@
     el(c, 0, by, L / 2, Hh / 2, c1); el(c, -1, by - .5, L * .32, Hh * .3, o.wc || sh(c1, .86));
     const nk = b === 'tall' ? 12 : b === 'swan' ? 9 : b === 'peacock' ? 6 : 2, hx = L / 2 + (b === 'small' ? 0 : 2), hy = by - Hh * .3 - nk;
     if (nk > 3) { c.strokeStyle = c1; c.lineWidth = 2.1; c.lineCap = 'round'; c.beginPath(); c.moveTo(L / 2 - 2, by - 1); c.quadraticCurveTo(L / 2 + 5, by - nk * .5, hx, hy + 1); c.stroke(); }
-    el(c, hx, hy, b === 'small' ? 3.2 : 2.5, b === 'small' ? 3 : 2.3, o.hc || c1); el(c, hx + .9, hy - .4, .7, .7, '#111');
-    tri(c, [hx + 2, hy - 1, hx + (b === 'tall' ? 6 : 5), hy + (b === 'tall' || o.big ? 2.2 : .3), hx + 2, hy + 1.4], o.bk || '#e8b020');
+    el(c, hx, hy, b === 'small' ? 4 : 3.2, b === 'small' ? 3.8 : 3, o.hc || c1); eye(c, hx + .9, hy - .5, 1.35, o);
+    tri(c, [hx + 2.7, hy - .6, hx + (b === 'tall' ? 7 : 6), hy + (b === 'tall' || o.big ? 2.6 : .7), hx + 2.6, hy + 1.8], o.bk || '#e8b020');
     if (b === 'peacock') ln(c, [hx, hy - 2, hx - 1, hy - 5], c1, .9);
   }
   function primate(c, o, ph, m, baby, lie) {
@@ -111,11 +137,11 @@
     el(c, 0, -8 * g, 6.2 * g, 6.6 * g, c1);
     if (m && !baby && o.silver) el(c, -2.2 * g, -9.5 * g, 3.4 * g, 3.6 * g, o.silver);
     ln(c, [-2 * g, -5 * g, -3 * g + sw, 0], c1, 2.6 * g); ln(c, [4.5 * g, -8 * g, 6.5 * g - sw, -1], c1, 2.3 * g);
-    const hx = 3.5 * g, hy = -15.5 * g, hr = (baby ? 4.6 : 4) * g;
+    const hx = 3.5 * g, hy = -16.2 * g, hr = (baby ? 5.8 : 4.9) * g;
     if (o.koala) { el(c, hx - hr * .9, hy - hr * .6, hr * .6, hr * .6, c1); el(c, hx + hr * .9, hy - hr * .6, hr * .6, hr * .6, c1); } else { el(c, hx - hr * .95, hy, hr * .32, hr * .4, o.face); }
     if (m && !baby && o.flange) el(c, hx, hy + .5, hr * 1.35, hr * 1.05, sh(o.face, .8));
     el(c, hx, hy, hr, hr * .95, c1); el(c, hx + hr * .2, hy + hr * .15, hr * .68, hr * .66, o.face);
-    el(c, hx + hr * .05, hy - hr * .05, .75, .75, '#111'); el(c, hx + hr * .5, hy - hr * .05, .75, .75, '#111');
+    eye(c, hx - hr * .08, hy - hr * .08, hr * .27, Object.assign({}, o, { lid: o.face })); eye(c, hx + hr * .5, hy - hr * .08, hr * .25, Object.assign({}, o, { lid: o.face })); mouth(c, hx + hr * .22, hy + hr * .5, hr * .22, o);
     if (o.koala) el(c, hx + hr * .3, hy + hr * .3, hr * .22, hr * .3, '#222');
   }
   function rept(c, o, ph, m, baby, lie) {
@@ -124,16 +150,16 @@
     ln(c, [-L * .16, -2.5, -L * .2 - sw, 0], sh(c1, .75), 2); ln(c, [L * .14, -2.5, L * .18 + sw, 0], sh(c1, .75), 2);
     el(c, 0, -3.6, L * .27, 3.3, c1); c.fillStyle = o.c2; c.fillRect(-L * .24, -2.4, L * .48, 1.3);
     for (let i = -3; i <= 3; i++) tri(c, [i * L * .06 - 1, -6.4, i * L * .06, -8, i * L * .06 + 1, -6.4], sh(c1, .8));
-    el(c, L * .33, -3.6, L * .15, 2.5, c1); el(c, L * .45, -3.2, L * .1, 1.7, c1); el(c, L * .3, -5, .8, .8, '#f2d020'); el(c, L * .3, -5, .4, .4, '#111');
+    el(c, L * .33, -3.6, L * .15, 2.5, c1); el(c, L * .45, -3.2, L * .1, 1.7, c1); eye(c, L * .3, -5.6, 1.5, o, '#c9a020');
     ln(c, [-L * .1, -2.5, -L * .12 + sw, 0], c1, 2); ln(c, [L * .2, -2.5, L * .23 - sw, 0], c1, 2);
   }
   const OTHER = {
-    snake(c, o, ph) { c.strokeStyle = o.c; c.lineWidth = 3.4; c.lineCap = 'round'; c.beginPath(); for (let i = 0; i <= 20; i++) { const x = -11 + i * 1.1, y = -2.5 + Math.sin(i * .7 + ph * .5) * 2.2; i ? c.lineTo(x, y) : c.moveTo(x, y); } c.stroke(); c.strokeStyle = o.pc; c.lineWidth = 1; c.setLineDash([1.5, 2.5]); c.stroke(); c.setLineDash([]); el(c, 12, -3 + Math.sin(14 + ph * .5) * 2.2, 2.6, 2, o.c); el(c, 13, -3.6 + Math.sin(14 + ph * .5) * 2.2, .6, .6, '#111'); },
+    snake(c, o, ph) { c.strokeStyle = o.c; c.lineWidth = 3.4; c.lineCap = 'round'; c.beginPath(); for (let i = 0; i <= 20; i++) { const x = -11 + i * 1.1, y = -2.5 + Math.sin(i * .7 + ph * .5) * 2.2; i ? c.lineTo(x, y) : c.moveTo(x, y); } c.stroke(); c.strokeStyle = o.pc; c.lineWidth = 1; c.setLineDash([1.5, 2.5]); c.stroke(); c.setLineDash([]); el(c, 12, -3 + Math.sin(14 + ph * .5) * 2.2, 2.6, 2, o.c); eye(c, 12.6, -4.2 + Math.sin(14 + ph * .5) * 2.2, 1.1, o, '#c9a020'); },
     bug(c, o, ph) { for (let i = 0; i < 4; i++) { ln(c, [i * 2 - 3, -2.5, i * 2 - 4, 0], sh(o.c, .8), .9); ln(c, [i * 2 - 3, -2.5, i * 2 - 2, 0], sh(o.c, .8), .9); } el(c, 0, -3, 5, 2.6, o.c); c.strokeStyle = o.c; c.lineWidth = 1.8; c.beginPath(); c.arc(-6, -7, 4.5, 1.2, 4.6); c.stroke(); tri(c, [-4, -11.5, -1.5, -11, -4, -9.8], '#2a1a08'); ln(c, [4.5, -3.5, 8, -5 + Math.sin(ph) * .8], o.c, 1.5); el(c, 8.6, -5, 1.6, 1.1, o.c); },
-    seal(c, o, ph) { tri(c, [-8, -3.5, -14, -6, -13, -1], sh(o.c, .8)); el(c, 0, -4.5, 10, 4.6, o.c); el(c, 1, -3, 7, 2.6, o.c2); el(c, 8.5, -7.5, 4, 3.6, o.c); el(c, 10, -8, .8, .8, '#111'); el(c, 12, -6.6, .9, .7, '#333'); ln(c, [3, -2.5, 5 + Math.sin(ph) * 1.5, 0], sh(o.c, .75), 2.4); },
-    turtle(c, o, ph) { const sw = Math.sin(ph); ln(c, [-5, -2.5, -6 - sw, 0], o.c2, 2.4); ln(c, [5, -2.5, 6 + sw, 0], o.c2, 2.4); el(c, 9.5, -5, 3, 2.4, o.c2); el(c, 10.6, -5.5, .6, .6, '#111'); c.fillStyle = o.c; c.beginPath(); c.ellipse(0, -3, 8.5, 7.5, 0, Math.PI, 0); c.closePath(); c.fill(); c.strokeStyle = sh(o.c, .7); c.lineWidth = .9; c.beginPath(); c.moveTo(-4, -3); c.lineTo(-2, -9.6); c.moveTo(4, -3); c.lineTo(2, -9.6); c.moveTo(-7.5, -6); c.lineTo(7.5, -6); c.stroke(); },
-    kang(c, o, ph, m, baby, lie) { const hop = lie ? 0 : -Math.abs(Math.sin(ph * .6)) * 3; c.save(); c.translate(0, hop); ln(c, [-4, -6, -13, -1], o.c, 3.2); ln(c, [-1, -6, 3, -1, 7, 0], sh(o.c, .8), 3); c.save(); c.translate(0, -9); c.rotate(-.5); el(c, 0, 0, 7.5, 4.8, o.c); el(c, 1, 1.5, 5, 2.4, o.c2); c.restore(); ln(c, [4, -12, 7, -9], sh(o.c, .8), 1.5); el(c, 7.5, -16, 3.4, 2.8, o.c); el(c, 10, -15.3, 1.8, 1.4, o.c); el(c, 6.5, -20, 1, 2.6, o.c); el(c, 8.2, -19.6, 1, 2.4, sh(o.c, .85)); el(c, 8.6, -16.6, .7, .7, '#111'); if (!m && !baby) el(c, 2.5, -7, 1.6, 1.6, sh(o.c, 1.15)); c.restore(); },
-    trex(c, o, ph, m, baby, lie) { const sw = lie ? 0 : Math.sin(ph) * 3; tri(c, [-5, -15, -5, -9, -22, -11], o.c); ln(c, [-1, -9, -2 - sw, 0], sh(o.c, .72), 3.6); c.save(); c.translate(1, -13); c.rotate(-.28); el(c, 0, 0, 9.5, 6, o.c); el(c, 1, 2.2, 7, 2.6, o.c2); c.restore(); ln(c, [2, -9, 3 + sw, 0], o.c, 3.8); ln(c, [7, -13, 10, -10], sh(o.c, .8), 1.4); ln(c, [6, -17, 10, -21], o.c, 4.4); el(c, 12.5, -22, 5.4, 3.8, o.c); c.fillStyle = o.c; c.fillRect(11, -21, 7.5, 2.6); c.fillStyle = sh(o.c, .8); c.fillRect(11, -18.6, 6.5, 1.8); for (let i = 0; i < 4; i++) tri(c, [12 + i * 1.6, -18.6, 12.8 + i * 1.6, -17.2, 13.6 + i * 1.6, -18.6], '#fff'); el(c, 12, -23.2, .9, .9, '#f2d020'); el(c, 12.2, -23.2, .45, .45, '#111'); },
+    seal(c, o, ph) { tri(c, [-8, -3.5, -14, -6, -13, -1], sh(o.c, .8)); el(c, 0, -4.5, 10, 4.6, o.c); el(c, 1, -3, 7, 2.6, o.c2); el(c, 8.5, -7.8, 4.6, 4.1, o.c); eye(c, 9.6, -8.6, 1.5, o); el(c, 12.4, -6.8, .9, .7, '#333'); mouth(c, 11, -5.6, 1.1, o); ln(c, [3, -2.5, 5 + Math.sin(ph) * 1.5, 0], sh(o.c, .75), 2.4); },
+    turtle(c, o, ph) { const sw = Math.sin(ph); ln(c, [-5, -2.5, -6 - sw, 0], o.c2, 2.4); ln(c, [5, -2.5, 6 + sw, 0], o.c2, 2.4); el(c, 9.8, -5.4, 3.6, 3, o.c2); eye(c, 10.8, -6.2, 1.3, Object.assign({}, o, { lid: o.c2 })); mouth(c, 11.6, -4.2, .9, o); c.fillStyle = o.c; c.beginPath(); c.ellipse(0, -3, 8.5, 7.5, 0, Math.PI, 0); c.closePath(); c.fill(); c.strokeStyle = sh(o.c, .7); c.lineWidth = .9; c.beginPath(); c.moveTo(-4, -3); c.lineTo(-2, -9.6); c.moveTo(4, -3); c.lineTo(2, -9.6); c.moveTo(-7.5, -6); c.lineTo(7.5, -6); c.stroke(); },
+    kang(c, o, ph, m, baby, lie) { const hop = lie ? 0 : -Math.abs(Math.sin(ph * .6)) * 3; c.save(); c.translate(0, hop); ln(c, [-4, -6, -13, -1], o.c, 3.2); ln(c, [-1, -6, 3, -1, 7, 0], sh(o.c, .8), 3); c.save(); c.translate(0, -9); c.rotate(-.5); el(c, 0, 0, 7.5, 4.8, o.c); el(c, 1, 1.5, 5, 2.4, o.c2); c.restore(); ln(c, [4, -12, 7, -9], sh(o.c, .8), 1.5); el(c, 7.5, -16.4, 4.2, 3.5, o.c); el(c, 10.6, -15.4, 2.1, 1.6, o.c2); el(c, 6.2, -21, 1.1, 3, o.c); el(c, 8.2, -20.6, 1.1, 2.8, sh(o.c, .85)); eye(c, 8.4, -17.2, 1.4, o); el(c, 12.2, -15.8, .6, .5, '#2a1a14', true); if (!m && !baby) el(c, 2.5, -7, 1.6, 1.6, sh(o.c, 1.15)); c.restore(); },
+    trex(c, o, ph, m, baby, lie) { const sw = lie ? 0 : Math.sin(ph) * 3; tri(c, [-5, -15, -5, -9, -22, -11], o.c); ln(c, [-1, -9, -2 - sw, 0], sh(o.c, .72), 3.6); c.save(); c.translate(1, -13); c.rotate(-.28); el(c, 0, 0, 9.5, 6, o.c); el(c, 1, 2.2, 7, 2.6, o.c2); c.restore(); ln(c, [2, -9, 3 + sw, 0], o.c, 3.8); ln(c, [7, -13, 10, -10], sh(o.c, .8), 1.4); ln(c, [6, -17, 10, -21], o.c, 4.4); el(c, 12.5, -22, 5.4, 3.8, o.c); c.fillStyle = o.c; c.fillRect(11, -21, 7.5, 2.6); c.fillStyle = sh(o.c, .8); c.fillRect(11, -18.6, 6.5, 1.8); for (let i = 0; i < 4; i++) tri(c, [12 + i * 1.6, -18.6, 12.8 + i * 1.6, -17.2, 13.6 + i * 1.6, -18.6], '#fff'); eye(c, 11.6, -23.6, 1.7, o, '#c9a020'); },
   };
   // Dessine un animal : pieds en (x, y). Renvoie sa hauteur à l'écran (pour placer l'icône d'état).
   Z.animalScale = function (a) { const sp = SP[a.sp]; return sp.size / 24 * (a.age >= sp.mat ? 1 : .42 + .58 * a.age / sp.mat) * (a.sex === 'M' ? 1.06 : .95); };
@@ -142,8 +168,10 @@
     const sp = SP[a.sp], baby = a.age < sp.mat * .5, m = a.sex === 'M', k = Z.animalScale(a), lie = night || a.health < 25, ph = lie || a.wait > 0 ? 0 : (a.x + a.y) * 16;
     c.fillStyle = 'rgba(0,0,0,.2)'; c.beginPath(); c.ellipse(x, y, 10 * k, 3.6 * k, 0, 0, 7); c.fill();
     c.save(); c.translate(x, y); c.scale(right ? k : -k, k);
-    const oo = m && !baby ? o : Object.assign({}, o, { c: sh(o.c, baby ? 1.07 : 1.03) });
-    const t = o.t || 'quad'; if (t === 'quad') quad(c, oo, ph, m, baby, lie, a); else if (t === 'bird') bird(c, oo, ph, m, baby, lie); else if (t === 'primate') primate(c, oo, ph, m, baby, lie); else if (t === 'rept') rept(c, oo, ph, m, baby, lie); else OTHER[t](c, oo, ph, m, baby, lie);
+    const tt = performance.now() / 1000 * (Z.S && Z.S.speed === 0 ? 0 : 1) + a.id * 1.37;
+    const mood = lie ? 'sleep' : a.sick ? 'sick' : a.happy < 40 || a.hunger < 20 ? 'sad' : a.happy > 72 ? 'happy' : 'ok';
+    const oo = Object.assign({}, o, { c: m && !baby ? o.c : sh(o.c, baby ? 1.07 : 1.03), mood, blink: tt % 4.3 < .14, t: tt });
+    const t = o.t || 'quad'; delete oo.t; if (t === 'quad') { oo.t = tt; quad(c, oo, ph, m, baby, lie, a); } else if (t === 'bird') bird(c, oo, ph, m, baby, lie); else if (t === 'primate') primate(c, oo, ph, m, baby, lie); else if (t === 'rept') rept(c, oo, ph, m, baby, lie); else OTHER[t](c, oo, ph, m, baby, lie);
     c.restore();
     return k * (t === 'quad' ? (o.leg || 8) + (o.H || 9) + (o.neck || 2) + 6 : t === 'trex' ? 27 : t === 'kang' || t === 'primate' ? 22 : t === 'bird' ? (o.b === 'tall' ? 30 : 20) : 10);
   };

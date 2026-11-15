@@ -6,7 +6,7 @@ Jeu de gestion de zoo réaliste, jouable directement dans le navigateur (aucune 
 
 ## Le jeu
 
-- **Animaux et bâtiments dessinés** : 41 espèces dessinées et animées (taille selon l'âge, mâles et femelles différents : crinière, bois, cornes, roue du paon…), bâtiments à toit en pente, attractions animées.
+- **Animaux et bâtiments dessinés** : 41 espèces dans un style dessin animé (grosses têtes, grands yeux qui clignent et expriment l'humeur, volumes ombrés, pattes articulées, queue qui remue), taille selon l'âge, mâles et femelles différents ; bâtiments à toit en pente, attractions animées.
 - **Fiche animal** : un clic sur un animal ouvre sa fiche (portrait, âge, état, origine, vente, transfert).
 - **Besoins par espèce et note des enclos** : chaque espèce réclame ses aménagements (abri, bassin, végétation, enrichissement) ; chaque enclos est noté de 1 à 5 étoiles, ce qui fait varier son attrait.
 - **Récompenses de l'agrandissement** : nouvelle espèce fêtée par une fenêtre et un afflux de visiteurs, dix collections à compléter, paliers d'enclos, cœurs et pièces qui s'envolent.
