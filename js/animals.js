@@ -42,10 +42,10 @@
   // ---------- Fiche d'un animal ----------
   Z.PANELS.animal = function (id) {
     const [e, a] = find(id); if (!a) return null; const sp = SP[a.sp], m = a.sex === 'M';
-    const stage = a.age < sp.mat * .5 ? 'Bébé' : a.age < sp.mat ? 'Jeune' : a.age > sp.life * .8 ? 'Âgé' : 'Adulte';
+    const stage = Z.stageOf(a);
     const state = [a.sick ? '🤒 Malade' : '', a.preg ? '🤰 Gestation : naissance dans ' + a.preg + ' j' : '', a.hunger < 25 ? '🍖 Affamé' : '', a.health < 25 ? '⚠️ Très affaibli' : '', Z.isNight() ? '💤 Dort' : ''].filter(Boolean).join(' · ') || '✅ En forme';
     let h = `<img class="portrait" src="${Z.animalPortrait(a)}" alt=""><p><b>${sp.n}</b> · ${m ? '♂ Mâle' : '♀ Femelle'} · ${stage}</p>`;
-    h += row('Âge', (a.age < 1 ? Math.round(a.age * 12) + ' mois' : Math.floor(a.age) + ' ans') + ' <span class="muted">(espérance : ' + sp.life + ' ans)</span>') + row('Taille', Math.round(Z.animalScale(a) / (sp.size / 24) * 100) + ' % de la taille adulte') + row('État', state);
+    h += row('Âge', (a.age < 1 ? Math.round(a.age * 12) + ' mois' : Math.floor(a.age) + ' ans') + ' <span class="muted">(espérance : ' + sp.life + ' ans)</span>') + row('Place occupée', Math.round(Z.animalSpace(a) * 100) + ' % d’un adulte' + (Z.animalSpace(a) < 1 ? ' <span class="muted">(' + (Z.stageKey(a) === 'baby' ? 'adolescent à ' + Math.ceil(sp.mat * .5) : 'adulte à ' + sp.mat) + ' ans)</span>' : '')) + row('Taille', Math.round(Z.animalScale(a) / (sp.size / 24) * 100) + ' % de la taille adulte') + row('État', state);
     h += `<div class="grid3"><div>Santé${bar(a.health)}</div><div>Bonheur${bar(a.happy)}</div><div>Satiété${bar(a.hunger)}</div></div>`;
     h += row('Origine', a.pn ? 'Né(e) au zoo — parents : ' + esc(a.pn) + (a.inbred ? ' <span class="tag bad">consanguin</span>' : '') : 'Arrivé(e) d’un autre zoo');
     h += row('Habitat', BIO[sp.b].icon + ' ' + BIO[sp.b].name) + `<div class="row"><span>Enclos</span><button class="mini" data-a="goto" data-id="${e.id}">${esc(e.name)} ›</button></div>`;

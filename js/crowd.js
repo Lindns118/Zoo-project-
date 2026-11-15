@@ -4,7 +4,15 @@
   // Seuils d'occupation : plus de naissances, animaux malheureux, refus de manger, bagarres
   Z.BREED_MAX = .95; Z.CROWD = [1.05, 1.2, 1.3];
   Z.enclMax = e => { const sp = e.animals.length ? SP[e.animals[0].sp] : e.pending && e.pending.length ? SP[e.pending[0].sp] : null; return sp ? Math.max(1, Math.floor(e.w * e.h / sp.space)) : 0; };
-  Z.occupancy = (e, extra) => { const sp = e.animals.length ? SP[e.animals[0].sp] : null; return sp ? (e.animals.length + (extra || 0)) * sp.space / (e.w * e.h) : 0; };
+  // Place occupée selon l'âge : un bébé compte pour 40 % d'un adulte, un adolescent pour 70 %
+  Z.STAGES = { baby: ['Bébé', .4], teen: ['Adolescent', .7], adult: ['Adulte', 1], old: ['Âgé', 1] };
+  Z.stageKey = a => { const sp = SP[a.sp]; return a.age < sp.mat * .5 ? 'baby' : a.age < sp.mat ? 'teen' : a.age > sp.life * .8 ? 'old' : 'adult'; };
+  Z.stageOf = a => Z.STAGES[Z.stageKey(a)][0];
+  Z.animalSpace = a => Z.STAGES[Z.stageKey(a)][1];
+  // Les jeunes attendrissent le public : un supplément de satisfaction qui s'ajoute à ce que rapportent les adultes
+  Z.young = e => { let baby = false, teen = false; for (const a of e.animals) { const k = Z.stageKey(a); if (k === 'baby') baby = true; else if (k === 'teen') teen = true; } return { baby, teen, pts: baby && teen ? 5 : baby ? 4 : teen ? 2 : 0, app: baby ? 1.15 : teen ? 1.07 : 1 }; };
+  Z.spaceUnits = e => e.animals.reduce((n, a) => n + Z.animalSpace(a), 0);   // en « équivalents adultes »
+  Z.occupancy = (e, extra) => { const sp = e.animals.length ? SP[e.animals[0].sp] : null; return sp ? (Z.spaceUnits(e) + (extra || 0)) * sp.space / (e.w * e.h) : 0; };
   Z.crowdStage = e => { const o = Z.occupancy(e) + 1e-9; return o >= Z.CROWD[2] ? 3 : o >= Z.CROWD[1] ? 2 : o >= Z.CROWD[0] ? 1 : 0; };
   Z.crowdText = function (e) {
     const o = Z.occupancy(e), st = Z.crowdStage(e);
@@ -54,6 +62,8 @@
   };
   Z.html.crowd = function (e) {
     const n = e.animals.length; if (!n) return ''; const mx = Z.enclMax(e), o = Z.occupancy(e) * 100, col = o >= 105 ? '#d9534f' : o >= 95 ? '#e0a020' : '#3fae5a';
-    return `<div class="card"><div class="ctitle"><b>Occupation : ${n} / ${mx} animaux</b><b style="color:${col}">${Math.round(o)} %</b></div><div class="bar"><i style="width:${Math.min(100, o)}%;background:${col}"></i></div><p class="muted">${Z.crowdText(e)}. Seuils : plus de naissances à 95 %, malheureux à 105 %, refus de manger à 120 %, bagarres à 130 %.</p></div>`;
+    const u = Z.spaceUnits(e), cnt = { baby: 0, teen: 0 }; for (const a of e.animals) { const k = Z.stageKey(a); if (cnt[k] != null) cnt[k]++; }
+    const young = cnt.baby + cnt.teen ? `<p class="muted">${cnt.baby ? cnt.baby + ' bébé' + (cnt.baby > 1 ? 's' : '') + ' (40 % de la place d’un adulte)' : ''}${cnt.baby && cnt.teen ? ', ' : ''}${cnt.teen ? cnt.teen + ' adolescent' + (cnt.teen > 1 ? 's' : '') + ' (70 %)' : ''} : l’ensemble occupe la place de ${u.toFixed(1).replace('.', ',')} adultes. Ils prendront plus de place en grandissant.<br>😍 Les jeunes attendrissent le public : +${Z.young(e).pts} de satisfaction pour chaque visiteur qui passe, en plus de l’effet des adultes.</p>` : '';
+    return `<div class="card"><div class="ctitle"><b>Occupation : ${n} animaux pour ${mx} places</b><b style="color:${col}">${Math.round(o)} %</b></div><div class="bar"><i style="width:${Math.min(100, o)}%;background:${col}"></i></div>${young}<p class="muted">${Z.crowdText(e)}. Seuils : plus de naissances à 95 %, malheureux à 105 %, refus de manger à 120 %, bagarres à 130 %.</p></div>`;
   };
 })();

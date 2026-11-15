@@ -146,8 +146,8 @@
   Z.avg = (e, k) => e.animals.length ? e.animals.reduce((s, a) => s + a[k], 0) / e.animals.length : 0;
   Z.enclAppeal = function (e) {
     const n = e.animals.length; if (!n) return 0;
-    const sp = SP[e.animals[0].sp], babies = e.animals.some(a => a.age < 1);
-    return sp.app * (1 + .4 * Math.log(n)) * (.3 + .7 * Z.avg(e, 'happy') / 100) * (e.up.veg ? 1.1 : 1) * (babies ? 1.15 : 1);
+    const sp = SP[e.animals[0].sp];
+    return sp.app * (1 + .4 * Math.log(n)) * (.3 + .7 * Z.avg(e, 'happy') / 100) * (e.up.veg ? 1.1 : 1) * Z.young(e).app;
   };
   Z.attract = function () {
     let a = 0; const set = new Set();
@@ -168,7 +168,7 @@
   Z.isNight = () => { const h = Z.S.minute / 60; return h >= 21 + Z.lateShift() * .75 || h < 6; };
   Z.happyTarget = function (e, a) {
     const sp = SP[a.sp], n = e.animals.length; let h = 76 + Z.climateBonus(e.biome);
-    const ratio = e.w * e.h / (n * sp.space);
+    const ratio = 1 / Math.max(.01, Z.occupancy(e)); // les jeunes prennent moins de place que les adultes
     if (1 / ratio >= 1.05 - 1e-9) h -= (1 / ratio - 1.05) * 110 + 8 + (e.crowd || 0) * 6; else if (ratio >= 1.5) h += 4;
     if (n < sp.grp) h -= 18;
     if (a.hunger < 40) h -= (40 - a.hunger) * .9;
@@ -182,7 +182,7 @@
     if (!e.vp.length) r.push('Aucune allée ne relie cet enclos à l’entrée');
     if (n) {
       const sp = SP[e.animals[0].sp];
-      if (e.w * e.h * 1.05 < n * sp.space) r.push('Trop à l’étroit : ' + (n * sp.space) + ' cases nécessaires (' + (e.w * e.h) + ' disponibles)');
+      if (Z.occupancy(e) >= 1.05) r.push('Trop à l’étroit : ' + Math.ceil(Z.spaceUnits(e) * sp.space) + ' cases nécessaires (' + (e.w * e.h) + ' disponibles)');
       if (n < sp.grp) r.push('Groupe trop petit : les ' + sp.pl + ' vivent à ' + sp.grp + ' minimum');
       if (e.food <= 0) r.push('Mangeoire vide !'); else if (e.food < 25) r.push('Mangeoire presque vide');
       if (e.clean < 40) r.push('Enclos sale');
@@ -428,8 +428,9 @@
     const sp = SP[e.animals[0].sp], hp = Z.avg(e, 'happy'); let gain = (clamp(Z.enclAppeal(e) * .125, 1, 7) + Z.beauty * 2.5) * Z.guideBonus() / (1 + .35 * Math.max(0, v.nseen - 3)) + Z.fanBonus(v, e); // les quatre premiers enclos comptent pleinement, les suivants émerveillent un peu moins // les visiteurs voient plusieurs enclos : chacun compte moins
     if (hp < 40) { gain = -6; think(v, 'Ces ' + sp.pl + ' ont l’air malheureux 😟'); }
     else if (e.clean < 30) { gain -= 6; think(v, 'L’enclos des ' + sp.pl + ' est sale…'); }
-    else if (e.animals.some(a => a.age < 1)) { gain += 3; think(v, 'Oh, un bébé ' + sp.n.toLowerCase() + ' ! 😍'); }
     else if (Math.random() < .5) think(v, pick(['J’adore les ' + sp.pl + ' !', 'Les ' + sp.pl + ' sont magnifiques', 'Regarde les ' + sp.pl + ' ! ' + sp.e]));
+    // supplément apporté par les jeunes, sans rien retirer à ce que rapportent les adultes
+    const yg = Z.young(e); if (yg.pts && hp >= 40) { gain += yg.pts; think(v, yg.baby ? 'Oh, un bébé ' + sp.n.toLowerCase() + ' ! 😍' : 'Regarde le jeune ' + sp.n.toLowerCase() + ' qui joue !'); }
     if (g.quick) gain *= .85; // un simple coup d'œil en passant marque moins qu'une vraie halte
     if (gain > 3) Z.fxAdd(v.x, v.y, '♥', '#e53935');
     v.happy = clamp(v.happy + gain, 0, 100); v.seen[e.id] = 1; v.nseen++;
