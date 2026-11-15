@@ -67,6 +67,7 @@
       }
     }
     for (const e of S.enclosures) e.vp = adjacent(e.x, e.y, e.w, e.h);
+    Z.vpMap = {}; for (const e of S.enclosures) for (const t of e.vp) (Z.vpMap[t] = Z.vpMap[t] || []).push(e); // cases d'allée d'où l'on voit chaque enclos
     const cover = Z.binCover = new Uint8Array(W * H); let beauty = 0, paths = 0;
     for (const b of S.buildings) {
       const d = BL[b.type]; b.acc = S.ground[idx(b.x, b.y)] === 1 ? (reach[idx(b.x, b.y)] ? [idx(b.x, b.y)] : []) : adjacent(b.x, b.y, d.size, d.size); beauty += d.beauty || 0;
@@ -370,12 +371,13 @@
     if (Math.random() < .25) { const rs = [...new Set(S.buildings.filter(b => BL[b.type].cat === 'ride' && !v.c['r' + b.type]).map(b => b.type))]; if (rs.length && goBuilding(v, rs)) return; }
     if (v.kid && !v.c.play && Math.random() < .12) { v.c.play = 1; if (goBuilding(v, 'play')) return; }
     // flânerie : de temps en temps, une promenade vers un autre coin du parc
-    if (v.nseen && Math.random() < .1 && Z.pathList.length > 12) { const p = Z.findPath(tileOf(v), [pick(Z.pathList)]); if (p && p.length > 3 && p.length < 45) { v.path = p; v.st = 'walk'; v.goal = { k: 'stroll' }; return; } }
+    if (v.nseen && Math.random() < .05 && Z.pathList.length > 12) { const p = Z.findPath(tileOf(v), [pick(Z.pathList)]); if (p && p.length > 3 && p.length < 45) { v.path = p; v.st = 'walk'; v.goal = { k: 'stroll' }; return; } }
     const cand = S.enclosures.filter(e => e.animals.length && e.vp.length && !v.seen[e.id]);
     if (cand.length) {
       let best = null, bd = 1e9;
-      const tries = Math.random() < .25 ? 1 : v.nseen ? 4 : 2; // le plus souvent un enclos proche, parfois un lointain
-      for (let i = 0; i < tries; i++) { const e = pick(cand), d = Math.abs(e.x + e.w / 2 - v.x) + Math.abs(e.y + e.h / 2 - v.y); if (d < bd) { bd = d; best = e; } }
+      // parcours efficace : l'enclos non vu le plus proche (ou le deuxième), et de temps en temps un enclos pris au hasard
+      if (!v.nseen || Math.random() < .08) best = pick(cand); // la visite commence n'importe où dans le parc, puis se poursuit de proche en proche
+      else { let second = null; for (const e of cand) { const d = Math.abs(e.x + e.w / 2 - v.x) + Math.abs(e.y + e.h / 2 - v.y); if (d < bd) { second = best; bd = d; best = e; } } if (second && Math.random() < .25) best = second; }
       const p = Z.findPath(tileOf(v), [pick(best.vp)]);
       if (p) { v.path = p; v.st = 'walk'; v.goal = { k: 'encl', id: best.id }; return; }
       v.seen[best.id] = 1; return;
@@ -393,7 +395,7 @@
     const S = Z.S, g = v.goal; v.goal = null; v.st = 'idle'; if (!g) return;
     if (g.k === 'exit') { v.gone = true; Z.onExit(v); Z.xp(Math.max(0, v.happy - 25) / 150); S.ratings.push(clamp((v.happy - 20) / 16, 0, 5)); if (S.ratings.length > 80) S.ratings.splice(0, S.ratings.length - 80); return; }
     if (g.k === 'stroll') return;
-    if (g.k === 'encl') { v.st = 'busy'; v.t = rnd(8, 14); v.act = g; return; }
+    if (g.k === 'encl') { v.st = 'busy'; v.t = rnd(6, 11); v.act = g; return; }
     const b = S.buildings.find(b => b.id === g.id); if (!b) return;
     if (Z.queueFor(v, b, g)) return;
     serve(v, b, g);
@@ -414,23 +416,26 @@
     v.st = 'idle'; const g = v.act; v.act = null; if (!g) return;
     const e = Z.S.enclosures.find(e => e.id === g.id); if (!e || !e.animals.length) return;
     if (!g.n && e.vp.length > 1 && Math.random() < .75) { g.n = 1; const here = tileOf(v), near = e.vp.filter(t => t !== here && Math.abs(t % W - here % W) + Math.abs(((t / W) | 0) - ((here / W) | 0)) <= 5), p = near.length ? Z.findPath(here, [pick(near)]) : null; if (p && p.length < 12) { v.path = p; v.st = 'walk'; v.goal = g; return; } }
-    const sp = SP[e.animals[0].sp], hp = Z.avg(e, 'happy'); let gain = (clamp(Z.enclAppeal(e) * .19, 1.2, 9) + Z.beauty * 2.5) * Z.guideBonus() + Z.fanBonus(v, e); // les visiteurs voient plusieurs enclos : chacun compte moins
+    const sp = SP[e.animals[0].sp], hp = Z.avg(e, 'happy'); let gain = (clamp(Z.enclAppeal(e) * .17, 1.2, 8.5) + Z.beauty * 2.5) * Z.guideBonus() / (1 + .35 * Math.max(0, v.nseen - 3)) + Z.fanBonus(v, e); // les quatre premiers enclos comptent pleinement, les suivants émerveillent un peu moins // les visiteurs voient plusieurs enclos : chacun compte moins
     if (hp < 40) { gain = -6; think(v, 'Ces ' + sp.pl + ' ont l’air malheureux 😟'); }
     else if (e.clean < 30) { gain -= 6; think(v, 'L’enclos des ' + sp.pl + ' est sale…'); }
     else if (e.animals.some(a => a.age < 1)) { gain += 3; think(v, 'Oh, un bébé ' + sp.n.toLowerCase() + ' ! 😍'); }
     else if (Math.random() < .5) think(v, pick(['J’adore les ' + sp.pl + ' !', 'Les ' + sp.pl + ' sont magnifiques', 'Regarde les ' + sp.pl + ' ! ' + sp.e]));
+    if (g.quick) gain *= .85; // un simple coup d'œil en passant marque moins qu'une vraie halte
     if (gain > 3) Z.fxAdd(v.x, v.y, '♥', '#e53935');
     v.happy = clamp(v.happy + gain, 0, 100); v.seen[e.id] = 1; v.nseen++;
   }
   function visitorUpdate(v, dt) {
     const S = Z.S;
-    v.hunger -= .22 * dt; v.thirst -= .28 * dt * Z.evMod('thirst'); v.bladder -= .22 * dt; v.energy -= .2 * dt;
+    v.hunger -= .18 * dt; v.thirst -= .22 * dt * Z.evMod('thirst'); v.bladder -= .17 * dt; v.energy -= .15 * dt;
     if (S.weather === 'rain') v.happy -= .02 * dt;
     const cp = Z.crowdPen(); if (cp > 0) { v.happy -= cp * dt; if (!v.c.crowd && Math.random() < .002 * dt) { v.c.crowd = 1; think(v, 'Il y a beaucoup trop de monde ici…'); } }
     if (v.st === 'walk') {
-      const arrived = moveAlong(v, dt, v.kid ? .46 : .5), t = tileOf(v);
+      const arrived = moveAlong(v, dt, v.kid ? .56 : .62), t = tileOf(v);
       if (t !== v.lt) {
         v.lt = t;
+        // en longeant un enclos pas encore vu, on s'arrête un instant pour regarder
+        const near = !v.leaving && Z.vpMap[t]; if (near) for (const e of near) if (!v.seen[e.id] && e.animals.length && Math.random() < .75) { v.st = 'busy'; v.t = rnd(3, 6); v.act = { k: 'encl', id: e.id, n: 1, quick: 1 }; v.path = null; v.goal = null; return; }
         if (S.litter[t] > 0) { v.happy -= .5; if (Math.random() < .03) think(v, 'Beurk, des déchets partout…'); }
         if (v.trash) { if (Z.binCover[t]) v.trash = 0; else if (Math.random() < .12) { S.litter[t] = Math.min(3, S.litter[t] + 1); v.trash = 0; } }
       }
@@ -536,7 +541,7 @@
     if (S.minute >= 1440) { S.minute -= 1440; S.lastHour = -1; daily(); }
     const h = Math.floor(S.minute / 60); if (h !== S.lastHour) { S.lastHour = h; hourly(); }
     const hr = S.minute / 60;
-    if (hr >= 9 && hr < 17.5) { const d0 = Z.demand(), fill = Z.parkFill(), dm = d0 * fill, cap = Z.entryCap(); if (fill < 1) S.full = (S.full || 0) + d0 * (1 - fill) / 60 * dt; if (dm > cap) S.lost = (S.lost || 0) + (dm - cap) / 60 * dt; S.spawnAcc = (S.spawnAcc || 0) + Math.min(dm, cap) / 60 * dt * Z.rnd(.5, 1.5); while (S.spawnAcc >= 1) { S.spawnAcc--; if (S.visitors.length < 700) spawnVisitor(); } }
+    if (hr >= 9 && hr < 17.5) { const d0 = Z.demand() * (hr < 12 ? 1.5 : hr < 15 ? 1 : .4), fill = Z.parkFill(), dm = d0 * fill, cap = Z.entryCap(); if (fill < 1) S.full = (S.full || 0) + d0 * (1 - fill) / 60 * dt; if (dm > cap) S.lost = (S.lost || 0) + (dm - cap) / 60 * dt; S.spawnAcc = (S.spawnAcc || 0) + Math.min(dm, cap) / 60 * dt * Z.rnd(.5, 1.5); while (S.spawnAcc >= 1) { S.spawnAcc--; if (S.visitors.length < 700) spawnVisitor(); } }
     for (const v of S.visitors) visitorUpdate(v, dt);
     if (S.visitors.some(v => v.gone)) S.visitors = S.visitors.filter(v => !v.gone);
     if (hr >= 21 && S.visitors.length) S.visitors = [];
