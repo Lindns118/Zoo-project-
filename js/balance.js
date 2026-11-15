@@ -9,6 +9,8 @@
     normal: { n: 'Normal', icon: '⚖️', demand: 1, xp: 1, desc: 'L’équilibre prévu.' },
     hard: { n: 'Expert', icon: '🔥', demand: .8, xp: 1.25, desc: '−20 % de visiteurs, mais +25 % d’expérience.' },
   };
+  // La réputation pèse lourd : l'affluence est proportionnelle au nombre d'étoiles (référence : 3 ★)
+  Z.repFactor = () => Math.max(1, Z.rep()) / 3;
   Z.diff = () => Z.DIFF[Z.S.diff] || Z.DIFF.normal;
   Z.diffMod = () => Z.diff().demand;
   const oldXp = Z.xp; Z.xp = n => oldXp(n * (Z.S ? Z.diff().xp : 1));
@@ -33,7 +35,7 @@
     const S = Z.S, at = Z.attract(), fair = Z.fairPrice();
     return [
       ['Attrait du zoo (animaux, espèces, attractions)', Math.round(at) + ' pts', (2 + 1.6 * Math.sqrt(at) + at * .06).toFixed(0) + ' /h'],
-      ['Réputation', Z.rep().toFixed(1) + ' ★', .4 + Z.rep() / 5 * 1.2],
+      ['Réputation', Z.rep().toFixed(1) + ' ★', Z.repFactor()],
       ['Prix du billet', fmt(S.ticket) + ' (juste : ' + fmt(fair) + ')', clamp(1.6 - S.ticket / fair * .8, 0, 1.5)],
       ['Météo', '', Z.weatherF()], ['Saison', Z.season().n, Z.seasonMod()], ['Événement', S.event ? Z.EVENTS[S.event.k].n : 'aucun', Z.evMod('demand')],
       ['Publicité', S.ads ? Z.ADS[S.ads.k].n : 'aucune', S.ads ? S.ads.f : 1], ['Recherche', '', Z.rmod('demand')],

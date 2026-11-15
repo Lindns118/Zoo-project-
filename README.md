@@ -8,6 +8,9 @@ Jeu de gestion de zoo réaliste, jouable directement dans le navigateur (aucune 
 
 - **Animaux et bâtiments dessinés** : 41 espèces dessinées et animées (taille selon l'âge, mâles et femelles différents : crinière, bois, cornes, roue du paon…), bâtiments à toit en pente, attractions animées.
 - **Fiche animal** : un clic sur un animal ouvre sa fiche (portrait, âge, état, origine, vente, transfert).
+- **Besoins par espèce et note des enclos** : chaque espèce réclame ses aménagements (abri, bassin, végétation, enrichissement) ; chaque enclos est noté de 1 à 5 étoiles, ce qui fait varier son attrait.
+- **Récompenses de l'agrandissement** : nouvelle espèce fêtée par une fenêtre et un afflux de visiteurs, dix collections à compléter, paliers d'enclos, cœurs et pièces qui s'envolent.
+- **Réputation décisive** : l'affluence est proportionnelle aux étoiles, et le public devient plus exigeant à mesure que le zoo monte de niveau.
 - **Capacité d'accueil** : le nombre de visiteurs que le parc peut recevoir dépend des allées, des enclos visibles, des attractions et des commerces ; au-delà, les arrivants renoncent et les visiteurs sont gênés. Le panneau Visiteurs détaille d'où vient l'affluence. Trois niveaux de difficulté.
 - **Surpopulation** : occupation affichée au-dessus de chaque enclos ; plus de naissances à 95 %, animaux malheureux à 105 %, refus de manger à 120 %, bagarres à 130 %, signalées par une fenêtre d'alerte illustrée.
 - **Marché de vente** : d'autres zoos achètent vos adultes au-dessus du prix ordinaire.

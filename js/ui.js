@@ -71,10 +71,10 @@
       let h = `<p class="muted">${bio.icon} Habitat ${bio.name.toLowerCase()} · ${e.w}×${e.h} = ${area} cases</p>`;
       if (e.bt > 0) h += `<div class="warn">🏗️ Chantier en cours : encore ${e.bt} h de travaux${bar(100 - e.bt / Z.enclBuildHours(e.w, e.h) * 100, '#e0a020')}</div>`;
       if (e.pending && e.pending.length) h += `<div class="warn">📦 En livraison : ${e.pending.map(d => SP[d.sp].e + ' ' + (d.sex === 'M' ? '♂' : '♀') + ' dans ' + d.eta + ' h').join(', ')}</div>`;
-      h += Z.html.crowd(e);
+      h += Z.html.quality(e) + Z.html.crowd(e);
       const iss = Z.enclIssues(e); if (iss.length) h += `<div class="warn">${iss.map(i => '⚠️ ' + esc(i)).join('<br>')}</div>`;
       h += `<div class="grid3"><div>Nourriture${bar(e.food)}</div><div>Propreté${bar(e.clean)}</div><div>Clôture${bar(e.fence)}</div></div>`;
-      h += '<h3>Aménagements</h3><div class="btns">' + Object.keys(Z.UPGRADES).map(k => { const u = Z.UPGRADES[k]; return e.up[k] ? `<span class="tag ok">${u.icon} ${u.name} ✓</span>` : `<button data-a="upg" data-k="${k}" title="${u.desc}">${u.icon} ${u.name} — ${fmt(u.cost(e))}<small>${u.desc}</small></button>`; }).join('') + '</div>';
+      h += '<h3>Aménagements</h3><div class="btns">' + Object.keys(Z.UPGRADES).map(k => { const u = Z.UPGRADES[k]; return e.up[k] ? `<span class="tag ok">${u.icon} ${u.name} ✓</span>` : `<button data-a="upg" data-k="${k}" title="${u.desc}">${u.icon} ${u.name} — ${fmt(u.cost(e))}<small>${Z.upgHint(e, k)}</small></button>`; }).join('') + '</div>';
       const xfer = a => { const ts = Z.transferTargets(e, a); return ts.length ? `<select data-x="${a.id}"><option value="">🚚 Transférer vers… (100 €)</option>${ts.map(t => `<option value="${t.id}">${esc(t.name)}</option>`).join('')}</select>` : ''; };
       if (n) {
         const sp = SP[e.animals[0].sp];

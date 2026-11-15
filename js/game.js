@@ -156,7 +156,7 @@
   Z.demand = function () { // visiteurs par heure
     const S = Z.S, at = Z.attract(); if (at <= 0) return 0;
     const pf = clamp(1.6 - S.ticket / Z.fairPrice() * .8, 0, 1.5);
-    return (2 + 1.6 * Math.sqrt(at) + at * .06) * (.4 + Z.rep() / 5 * 1.2) * pf * Z.weatherF() * (S.ads ? S.ads.f : 1) * Z.rmod('demand') * Z.mapMod('demand') * Z.evMod('demand') * Z.seasonMod() * Z.diffMod();
+    return (2 + 1.6 * Math.sqrt(at) + at * .06) * Z.repFactor() * pf * Z.weatherF() * (S.ads ? S.ads.f : 1) * Z.rmod('demand') * Z.mapMod('demand') * Z.evMod('demand') * Z.seasonMod() * Z.diffMod();
   };
   Z.isOpen = () => { const h = Z.S.minute / 60; return h >= 9 && h < 19; };
   Z.isNight = () => { const h = Z.S.minute / 60; return h >= 21 || h < 6; };
@@ -168,7 +168,7 @@
     if (a.hunger < 40) h -= (40 - a.hunger) * .9;
     if (e.clean < 50) h -= (50 - e.clean) * .6;
     if (a.sick) h -= 25;
-    if (e.up.abri) h += 7; if (e.up.jeux) h += 8; if (e.up.veg) h += 5;
+    h += Z.needsBonus(e, a.sp);
     return clamp(h, 0, 100);
   };
   Z.enclIssues = function (e) {
@@ -379,7 +379,7 @@
   function shopBuy(v, b, mult) {
     const d = BL[b.type], wtp = d.price * rnd(1.15, 2.1) * mult;
     if (b.price > wtp || v.money < b.price) { v.happy -= 4; think(v, d.name + ' : c’est trop cher !'); return false; }
-    v.money -= b.price; Z.earn('shops', b.price); Z.spend('goods', d.goods); b.sold++; v.happy += 4; return true;
+    v.money -= b.price; Z.earn('shops', b.price); Z.spend('goods', d.goods); b.sold++; v.happy += 4; Z.fxAdd(v.x, v.y, '+' + Math.round(b.price) + ' €', '#1f7a3d'); return true;
   }
   function arrive(v) {
     const S = Z.S, g = v.goal; v.goal = null; v.st = 'idle'; if (!g) return;
@@ -409,6 +409,7 @@
     else if (e.clean < 30) { gain -= 6; think(v, 'L’enclos des ' + sp.pl + ' est sale…'); }
     else if (e.animals.some(a => a.age < 1)) { gain += 3; think(v, 'Oh, un bébé ' + sp.n.toLowerCase() + ' ! 😍'); }
     else if (Math.random() < .5) think(v, pick(['J’adore les ' + sp.pl + ' !', 'Les ' + sp.pl + ' sont magnifiques', 'Regarde les ' + sp.pl + ' ! ' + sp.e]));
+    if (gain > 5) Z.fxAdd(v.x, v.y, '♥', '#e53935');
     v.happy = clamp(v.happy + gain, 0, 100); v.seen[e.id] = 1; v.nseen++;
   }
   function visitorUpdate(v, dt) {
