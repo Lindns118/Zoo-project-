@@ -103,8 +103,7 @@
       if (b.bt > 0) h += `<div class="warn">🏗️ En construction : ouverture dans ${b.bt} h</div>`;
       if (b.closed && !b.bt) h += '<div class="warn">🚫 Fermé : personnel manquant (vendeur ou opérateur). Embauchez-en dans 👷 Personnel.</div>';
       if (!b.acc.length && d.cat === 'shop') h += '<div class="warn">⚠️ Aucune allée reliée à l’entrée ne touche ce bâtiment</div>';
-      if (d.price) h += `<label>Prix de vente : <b id="rv">${fmt(b.price)}</b> <span class="muted">(conseillé ${fmt(d.price)})</span><input type="range" min="${d.price * .4}" max="${d.price * 2.5}" step="0.5" value="${b.price}" data-r="price"></label>` + row('Ventes aujourd’hui', b.sold) + row('Coût par vente', fmt(d.goods));
-      if (d.upkeep) h += row('Entretien', fmt(d.upkeep) + '/jour');
+      if (d.price) h += `<label>Prix de vente : <b id="rv">${fmt(b.price)}</b> <span class="muted">(conseillé ${fmt(d.price)})</span><input type="range" min="${d.price * .4}" max="${d.price * 2.5}" step="0.5" value="${b.price}" data-r="price"></label>` + row('Coût par vente', fmt(d.goods));
       h += Z.html.bld(b);
       h += `<div class="btns"><button class="danger" data-a="demobld">🧨 Démolir (+${fmt(d.cost * .3)})</button></div>`;
       return { title: d.icon + ' ' + d.name, html: h };
@@ -255,7 +254,7 @@
       h += '<h3>Trésorerie</h3>' + line(hs.map(x => x.money), '#2f8f4e', fmt) + '<h3>Résultat quotidien</h3>' + line(hs.map(x => x.inc - x.exp), '#c9870f', fmt) + '<h3>Visiteurs par jour</h3>' + line(hs.map(x => x.vis), '#3b7dd8', num)
         + '<h3>Réputation</h3>' + line(hs.map(x => x.rep), '#e3a008', v => v.toFixed(2).replace('.', ',') + ' ★') + '<h3>Valeur du zoo</h3>' + line(hs.map(x => x.val), '#8b5cc9', fmt);
       const shops = S.buildings.filter(b => BL[b.type].price);
-      h += '<h3>Ventes du jour</h3>' + (shops.length ? shops.map(b => row(BL[b.type].icon + ' ' + BL[b.type].name + ' <span class="muted">(' + fmt(b.price) + ')</span>', b.sold + ' ventes · ' + fmt(b.sold * (b.price - BL[b.type].goods)))).join('') : '<p class="muted">Aucune boutique.</p>');
+      h += Z.html.bldTable();
       const by = {}; for (const e of S.enclosures) for (const a of e.animals) { const o = by[a.sp] = by[a.sp] || { n: 0, h: 0 }; o.n++; o.h += a.happy; }
       h += '<h3>Espèces</h3>' + (Object.keys(by).map(k => row(SP[k].e + ' ' + SP[k].n + ' × ' + by[k].n, 'bonheur ' + Math.round(by[k].h / by[k].n) + ' %')).join('') || '<p class="muted">Aucun animal.</p>');
       return { title: '📊 Statistiques', html: h };

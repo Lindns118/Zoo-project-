@@ -12,6 +12,8 @@ Jeu de gestion de zoo réaliste, jouable directement dans le navigateur (aucune 
 - **Récompenses de l'agrandissement** : nouvelle espèce fêtée par une fenêtre et un afflux de visiteurs, dix collections à compléter, paliers d'enclos, cœurs et pièces qui s'envolent.
 - **Réputation décisive** : l'affluence est proportionnelle aux étoiles, et le public devient plus exigeant à mesure que le zoo monte de niveau.
 - **Visite réaliste** : les visiteurs marchent vite, observent chaque enclos depuis deux endroits, flânent, vont d'abord aux enclos proches puis s'éloignent, et passent par la boutique de souvenirs en partant. Le panneau Visiteurs indique les services manquants.
+- **Fiche des bâtiments** : ventes, chiffre d'affaires, résultat, débit, attente, clients perdus, historique sur 7 jours et prévision du lendemain ; deux améliorations à trois niveaux (rapidité, attractivité).
+- **Panneau Réputation** : visite type, ce qui fait monter la note, motifs de mécontentement classés par impact, incidents récents et conseils prioritaires.
 - **Capacité d'accueil** : le nombre de visiteurs que le parc peut recevoir dépend des allées, des enclos visibles, des attractions et des commerces ; au-delà, les arrivants renoncent et les visiteurs sont gênés. Le panneau Visiteurs détaille d'où vient l'affluence. Trois niveaux de difficulté.
 - **Surpopulation** : occupation affichée au-dessus de chaque enclos ; plus de naissances à 95 %, animaux malheureux à 105 %, refus de manger à 120 %, bagarres à 130 %, signalées par une fenêtre d'alerte illustrée.
 - **Marché de vente** : d'autres zoos achètent vos adultes au-dessus du prix ordinaire.

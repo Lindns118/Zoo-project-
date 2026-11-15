@@ -385,9 +385,9 @@
     leave(v);
   }
   function shopBuy(v, b, mult) {
-    const d = BL[b.type], wtp = d.price * rnd(1.15, 2.1) * mult;
-    if (b.price > wtp || v.money < b.price) { v.happy -= 4; think(v, d.name + ' : c’est trop cher !'); return false; }
-    v.money -= b.price; Z.earn('shops', b.price); Z.spend('goods', d.goods); b.sold++; v.happy += 3; Z.fxAdd(v.x, v.y, '+' + Math.round(b.price) + ' €', '#1f7a3d'); return true;
+    const d = BL[b.type], wtp = d.price * rnd(1.15, 2.1) * mult * Z.bldWtp(b);
+    if (b.price > wtp || v.money < b.price) { b.lp = (b.lp || 0) + 1; v.happy -= 4; think(v, d.name + ' : c’est trop cher !'); return false; }
+    v.money -= b.price; Z.earn('shops', b.price); Z.spend('goods', d.goods); b.sold++; b.rev = (b.rev || 0) + b.price; v.happy += 3 + (b.ua || 0); Z.fxAdd(v.x, v.y, '+' + Math.round(b.price) + ' €', '#1f7a3d'); return true;
   }
   function arrive(v) {
     const S = Z.S, g = v.goal; v.goal = null; v.st = 'idle'; if (!g) return;
@@ -399,14 +399,14 @@
     serve(v, b, g);
   }
   function serve(v, b, g) {
-    if (g.k === 'toilet') { v.bladder = 100; v.st = 'busy'; v.t = 6; }
+    if (g.k === 'toilet') { b.sold++; v.bladder = 100; v.st = 'busy'; v.t = 6; }
     else if (g.k === 'bench') { v.st = 'busy'; v.t = 30; v.energy = Math.min(100, v.energy + 45); v.happy += 2; }
     else if (g.k === 'food') { if (shopBuy(v, b, 1)) { v.hunger = 100; v.trash = 1; v.st = 'busy'; v.t = 15; } else v.hunger = 40; }
     else if (g.k === 'drink') { if (shopBuy(v, b, 1)) { v.thirst = 100; v.bladder -= 20; v.trash = 1; v.st = 'busy'; v.t = 5; } else v.thirst = 42; }
     else if (g.k === 'gift') { if (v.happy > 50 && shopBuy(v, b, v.happy / 70)) { v.st = 'busy'; v.t = 10; think(v, 'Un joli souvenir du zoo 🎁'); } }
     else if (g.k === 'resto') { if (shopBuy(v, b, 1)) { v.hunger = 100; v.thirst = Math.max(v.thirst, 70); v.energy = Math.min(100, v.energy + 20); v.happy += 3; v.st = 'busy'; v.t = 30; } else v.hunger = 40; }
     else if (g.k === 'ice') { if (shopBuy(v, b, 1)) { v.thirst = Math.min(100, v.thirst + 25); v.happy += 4; v.trash = 1; v.st = 'busy'; v.t = 6; } }
-    else if (BL[g.k].cat === 'ride') { v.c['r' + g.k] = 1; if (shopBuy(v, b, 1.4)) { v.happy += BL[g.k].fun - 4; v.st = 'busy'; v.t = BL[g.k].dur; think(v, BL[g.k].name + ' : génial ! ' + BL[g.k].icon); } }
+    else if (BL[g.k].cat === 'ride') { v.c['r' + g.k] = 1; if (shopBuy(v, b, 1.4)) { v.happy += BL[g.k].fun - 4 + (b.ua || 0) * 2; v.st = 'busy'; v.t = BL[g.k].dur; think(v, BL[g.k].name + ' : génial ! ' + BL[g.k].icon); } }
     else if (g.k === 'play') { v.happy += 8; v.st = 'busy'; v.t = 20; think(v, 'Trop bien, l’aire de jeux ! 🎠'); }
   }
   Z.serve = serve;
@@ -519,7 +519,7 @@
     const S = Z.S;
     for (const s of S.staff) Z.spend('salaries', Z.salaryOf(s));
     for (const e of S.enclosures) Z.spend('upkeep', e.w * e.h * .8);
-    for (const b of S.buildings) { if (BL[b.type].upkeep) Z.spend('upkeep', BL[b.type].upkeep); b.sold = 0; }
+    for (const b of S.buildings) { if (BL[b.type].upkeep) Z.spend('upkeep', Z.bldUpkeep(b)); Z.bldDaily(b); b.sold = 0; }
     Z.bankDaily();
     { let p = 0; for (const k in S.fin.today) if (k !== 'rewards' && k !== 'sales') p += S.fin.today[k]; if (p > 0) Z.spend('tax', p * .2); }
     let inc = 0, exp = 0; for (const k in S.fin.today) { const v = S.fin.today[k]; if (v > 0) inc += v; else exp -= v; }

@@ -111,7 +111,7 @@
   Z.biomeUnlocked = k => BIO[k].res ? Z.resDone(BIO[k].res) : oldBio(k);
   Z.entryCap = () => oldCap() + (Z.resDone('guichets') ? 40 : 0);
   Z.lockLabel = o => o.res ? '🔬 ' + Z.RESEARCH[o.res].name : 'Niveau ' + o.lvl;
-  Z.rideAppeal = function () { let a = 0; for (const b of Z.S.buildings) if (BL[b.type].cat === 'ride' && !b.bt && !b.closed && b.acc.length) a += BL[b.type].app; return a; };
+  Z.rideAppeal = function () { let a = 0; for (const b of Z.S.buildings) if (BL[b.type].cat === 'ride' && !b.bt && !b.closed && b.acc.length) a += BL[b.type].app * (1 + .15 * (b.ua || 0)); return a; };
 
   // ---------- Simulateur de prix ----------
   Z.simulate = function () {

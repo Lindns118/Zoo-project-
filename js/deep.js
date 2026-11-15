@@ -10,16 +10,16 @@
 
   // ================= 3. Files d'attente =================
   const SVC = { food: 1.2, drink: .6, gift: 1, ice: .6, resto: 1.5, toilet: .5 }; // minutes par client (un bloc de toilettes sert plusieurs personnes à la fois)
-  const svcOf = b => { const d = BL[b.type]; return d.cat === 'ride' ? d.dur / (d.size * d.size * 2.5) : SVC[b.type] || 0; };
+  const svcOf = Z.svcOf = b => { const d = BL[b.type]; return (d.cat === 'ride' ? d.dur / (d.size * d.size * 2.5) : SVC[b.type] || 0) * Z.bldSpeed(b); };
   Z.queueWait = b => Math.max(0, (b.qt || 0) - now());
   Z.queueLen = b => { const s = svcOf(b); return s ? Math.ceil(Z.queueWait(b) / s) : 0; };
   Z.queueFor = function (v, b, g) {
     const svc = svcOf(b); if (!svc) return false;
-    let wait = Z.queueWait(b); if (v.fast) wait *= .25;
+    let wait = Z.queueWait(b); if (wait > (b.wm || 0)) b.wm = wait; if (v.fast) wait *= .25;
     if (wait > 28 + rnd(0, 17)) { // trop d'attente : le visiteur renonce
       v.happy -= 5; v.thought = BL[b.type].name + ' : trop de queue, j’abandonne'; Z.thoughts.unshift(v.name + ' : ' + v.thought); if (Z.thoughts.length > 14) Z.thoughts.pop();
       if (g.k === 'food' || g.k === 'resto') v.hunger = 52; else if (g.k === 'drink') v.thirst = 56; else if (g.k === 'toilet') v.bladder = 55; else if (g.k === 'gift') { } else v.c['r' + g.k] = 1;
-      v.c.queue = 1; Z.S.qLost = (Z.S.qLost || 0) + 1; return true;
+      v.c.queue = 1; b.lq = (b.lq || 0) + 1; Z.S.qLost = (Z.S.qLost || 0) + 1; return true;
     }
     b.qt = Math.max(now(), b.qt || 0) + svc;
     if (wait < .5) return false;

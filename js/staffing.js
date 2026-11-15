@@ -18,7 +18,7 @@
     security: { name: 'Agent de sécurité', icon: '💂', salary: 110, color: '#444', desk: true, lvl: 7, desc: 'Prévient vols et dégradations quand la foule grossit (1 pour 200 visiteurs).' },
   });
   Z.OSLOTS = {};
-  const VSLOTS = { food: 1, drink: 1, gift: 1, ice: 1, resto: 2 };
+  const VSLOTS = Z.VSLOTS = { food: 1, drink: 1, gift: 1, ice: 1, resto: 2 };
 
   Z.staffCount = t => Z.S.staff.reduce((n, s) => n + (s.type === t ? 1 : 0), 0);
   Z.crowd = () => Math.max(Z.S.pk || 0, Z.S.pkY || 0, Z.S.visitors.length);
