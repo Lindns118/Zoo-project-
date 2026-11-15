@@ -19,7 +19,7 @@
   Z.upgBld = function (id, k) {
     const b = Z.S.buildings.find(b => b.id === id); if (!b || (b[k] || 0) >= 3 || !Z.UPG[k][kind(b)]) return;
     if (!Z.pay('build', Z.upgCost(b, k))) return; b[k] = (b[k] || 0) + 1; Z.groundDirty = true;
-    Z.notify('🔧 ' + BL[b.type].name + ' amélioré : ' + Z.UPG[k][kind(b)][0].toLowerCase() + ', niveau ' + b[k], 'good');
+    if (!Z.muteToasts) Z.notify('🔧 ' + BL[b.type].name + ' amélioré : ' + Z.UPG[k][kind(b)][0].toLowerCase() + ', niveau ' + b[k], 'good');
   };
   Z.bldUpkeep = b => (BL[b.type].upkeep || 0) * (1 + .1 * ((b.us || 0) + (b.ua || 0)));
   Z.bldStaffCost = b => (Z.VSLOTS[b.type] || 0) * Z.STAFF.vendor.salary + (Z.OSLOTS[b.type] || 0) * Z.STAFF.operator.salary;
@@ -126,6 +126,66 @@
     if (tips.length) h += '<h3>Par quoi commencer</h3><ol>' + tips.slice(0, 4).map(x => '<li>' + x + '</li>').join('') + '</ol>';
     return { title: '⭐ Réputation', html: h };
   };
+  // ================= Gestion d'ensemble : tous les bâtiments et tous les enclos sur un écran =================
+  const SP = Z.SPECIES;
+  const mTabs = cur => '<div class="tabs">' + [['shops', 'Commerces et attractions'], ['encl', 'Enclos']].map(t => `<button class="${cur === t[0] ? 'on' : ''}" data-a="tab" data-p="mgmt" data-id="${t[0]}">${t[1]}</button>`).join('') + '</div>';
+  const lost = b => (b.lq || 0) + (b.lp || 0);
+  const saturated = b => (b.us || 0) < 3 && ((b.lq || 0) > 3 || (b.wm || 0) > 15);
+  const canUp = (b, k) => !!Z.UPG[k][kind(b)] && (b[k] || 0) < 3;
+  const sumCost = (list, k) => list.reduce((n, b) => n + Z.upgCost(b, k), 0);
+  Z.upgMany = function (list, k) { // améliore tant qu'il reste de l'argent, les plus rentables d'abord
+    let done = 0; Z.muteToasts = true;
+    for (const b of list) { if (Z.S.money < Z.upgCost(b, k)) break; const lv = b[k] || 0; Z.upgBld(b.id, k); if ((b[k] || 0) > lv) done++; }
+    Z.muteToasts = false; Z.notify(done ? '🔧 ' + done + ' bâtiment' + (done > 1 ? 's améliorés' : ' amélioré') + (done < list.length ? ' (fonds insuffisants pour les autres)' : '') : 'Fonds insuffisants', done ? 'good' : 'bad');
+  };
+  Z.PANELS.mgmt = function () {
+    const S = Z.S, tab = Z.ui.tab.mgmt || 'shops'; let h = mTabs(tab);
+    if (tab === 'shops') {
+      const list = S.buildings.filter(b => kind(b) && !b.bt), srt = Z.ui.msort || 'lost';
+      if (!list.length) return { title: '🏗️ Gestion des bâtiments', html: h + '<p>Aucun commerce ni attraction pour le moment. Construisez-en depuis 🏪 Services ou 🎡 Attractions.</p>' };
+      const key = { lost: b => -lost(b), profit: b => Z.bldProfit(b, b.sold || 0, b.rev || 0), wait: b => -(b.wm || 0), name: b => BL[b.type].name }[srt];
+      list.sort((a, b) => (key(a) > key(b) ? 1 : key(a) < key(b) ? -1 : 0));
+      const tot = list.reduce((n, b) => n + Z.bldProfit(b, b.sold || 0, b.rev || 0), 0), tl = list.reduce((n, b) => n + lost(b), 0);
+      h += `<div class="kpis"><div><small>Résultat du jour</small><b class="${tot >= 0 ? 'good' : 'bad'}">${sign(tot)}</b></div><div><small>Clients perdus aujourd’hui</small><b class="${tl ? 'bad' : ''}">${tl}</b></div></div>`;
+      const sat = list.filter(saturated), us = list.filter(b => canUp(b, 'us')), ua = list.filter(b => canUp(b, 'ua'));
+      h += '<h3>Améliorations groupées</h3><div class="btns col">';
+      h += sat.length ? `<button data-a="mbulk" data-k="sat">⏳ Rapidité +1 pour les ${sat.length} bâtiment${sat.length > 1 ? 's' : ''} saturé${sat.length > 1 ? 's' : ''}<small>${fmt(sumCost(sat, 'us'))} · files longues ou clients perdus aujourd’hui</small></button>` : '<span class="tag ok">Aucun bâtiment saturé aujourd’hui ✓</span>';
+      if (us.length) h += `<button data-a="mbulk" data-k="us">🧾 Rapidité +1 pour tous (${us.length})<small>${fmt(sumCost(us, 'us'))}</small></button>`;
+      if (ua.length) h += `<button data-a="mbulk" data-k="ua">⭐ Attractivité +1 pour tous (${ua.length})<small>${fmt(sumCost(ua, 'ua'))}</small></button>`;
+      h += '</div><h3>Tous les bâtiments</h3><div class="btns">' + [['lost', 'Clients perdus'], ['profit', 'Résultat'], ['wait', 'Attente'], ['name', 'Nom']].map(q => `<button class="mini" data-a="msort" data-k="${q[0]}" ${srt === q[0] ? 'style="border-color:var(--acc);font-weight:600"' : ''}>${q[1]}</button>`).join('') + '</div>';
+      h += list.map(b => {
+        const d = BL[b.type], kd = kind(b), pr = Z.bldProfit(b, b.sold || 0, b.rev || 0);
+        const upb = k => { const nm = Z.UPG[k][kd]; if (!nm) return ''; const lv = b[k] || 0; return lv >= 3 ? `<span class="tag ok">${nm[1]} ${pips(3)}</span>` : `<button data-a="mupg" data-id="${b.id}" data-k="${k}">${nm[1]} ${k === 'us' ? 'Rapidité' : 'Attractivité'} <span class="stars">${pips(lv)}</span><small>${fmt(Z.upgCost(b, k))}</small></button>`; };
+        return `<div class="card ${saturated(b) ? 'cur' : ''}"><div class="ctitle"><b>${d.icon} ${d.name}</b><b class="${pr >= 0 ? 'good' : 'bad'}">${sign(pr)}</b></div>
+          <p class="muted">${b.closed ? '🚫 fermé, personnel manquant · ' : ''}${b.sold || 0} ${d.price ? 'ventes' : 'passages'} · ${Z.bldRate(b)} clients/h · attente max ${Math.round(b.wm || 0)} min${lost(b) ? ` · <span class="bad">${lost(b)} clients perdus (${b.lq || 0} file, ${b.lp || 0} prix)</span>` : ''}</p>
+          ${d.price ? `<div class="row"><span>Prix de vente <span class="muted">(conseillé ${fmt(d.price)})</span></span><span><button class="mini" data-a="mprice" data-id="${b.id}" data-v="-0.5">−</button> <b>${fmt(b.price)}</b> <button class="mini" data-a="mprice" data-id="${b.id}" data-v="0.5">+</button></span></div>` : ''}
+          <div class="btns">${upb('us')}${upb('ua')}<button class="mini" data-a="gotob" data-id="${b.id}">👁️ Détail</button></div></div>`;
+      }).join('');
+    } else {
+      const list = S.enclosures.filter(e => e.animals.length || (e.pending && e.pending.length));
+      if (!list.length) return { title: '🏗️ Gestion des bâtiments', html: h + '<p>Aucun enclos occupé pour le moment.</p>' };
+      const todo = []; for (const e of list) for (const k of Z.needsMissing(e)) todo.push([e, k]);
+      const cost = todo.reduce((n, q) => n + Z.UPGRADES[q[1]].cost(q[0]), 0), avg = list.filter(e => e.animals.length).reduce((n, e, i, a) => n + Z.enclStars(e) / a.length, 0);
+      h += `<div class="kpis"><div><small>Note moyenne des enclos</small><b class="stars">${avg ? avg.toFixed(1).replace('.', ',') + ' ★' : '—'}</b></div><div><small>Besoins non comblés</small><b class="${todo.length ? 'bad' : 'good'}">${todo.length}</b></div></div>`;
+      h += '<div class="btns col">' + (todo.length ? `<button data-a="mneedall">🛠️ Combler les ${todo.length} besoins manquants<small>${fmt(cost)} au total</small></button>` : '<span class="tag ok">Tous les besoins des espèces sont comblés ✓</span>') + '</div><h3>Tous les enclos</h3>';
+      list.sort((a, b) => Z.needsMissing(b).length - Z.needsMissing(a).length || (a.animals.length ? Z.enclStars(a) : 9) - (b.animals.length ? Z.enclStars(b) : 9));
+      h += list.map(e => {
+        const k0 = e.animals.length ? e.animals[0].sp : e.pending[0].sp, sp = SP[k0], st = e.animals.length ? Z.enclStars(e) : 0, o = Math.round(Z.occupancy(e) * 100), miss = Z.needsMissing(e), opt = ['abri', 'jeux', 'veg', 'bassin'].filter(k => !e.up[k] && !Z.needsOf(k0).includes(k) && !(k === 'bassin' && (e.biome === 'aquatique' || e.biome === 'polaire')));
+        return `<div class="card ${miss.length ? 'cur' : ''}"><div class="ctitle"><b>${sp.e} ${e.name.replace(/[<>&]/g, '')}</b><b class="stars">${st ? '★'.repeat(st) + '☆'.repeat(5 - st) : '—'}</b></div>
+          <p class="muted">${e.animals.length} ${e.animals.length > 1 ? sp.pl : sp.n.toLowerCase()} · occupation <span class="${o >= 105 ? 'bad' : ''}">${o} %</span> · bonheur ${Math.round(Z.avg(e, 'happy'))} % · propreté ${Math.round(e.clean)} %</p>
+          <div class="btns">${miss.map(k => `<button data-a="mneed" data-id="${e.id}" data-k="${k}">${Z.UPGRADES[k].icon} ${Z.UPGRADES[k].name}<small>⭐ indispensable · ${fmt(Z.UPGRADES[k].cost(e))}</small></button>`).join('')}${opt.map(k => `<button data-a="mneed" data-id="${e.id}" data-k="${k}">${Z.UPGRADES[k].icon} ${Z.UPGRADES[k].name}<small>facultatif · ${fmt(Z.UPGRADES[k].cost(e))}</small></button>`).join('')}<button class="mini" data-a="goto" data-id="${e.id}">👁️ Détail</button></div></div>`;
+      }).join('');
+    }
+    return { title: '🏗️ Gestion des bâtiments', html: h };
+  };
+  Object.assign(Z.ACT, {
+    mupg: d => Z.upgBld(+d.id, d.k), msort: d => { Z.ui.msort = d.k; },
+    mprice: d => { const b = Z.S.buildings.find(b => b.id === +d.id); if (b) b.price = clamp(b.price + +d.v, BL[b.type].price * .4, BL[b.type].price * 2.5); },
+    mbulk: d => { const all = Z.S.buildings.filter(b => kind(b) && !b.bt); if (d.k === 'sat') Z.upgMany(all.filter(saturated).sort((a, b) => lost(b) - lost(a)), 'us'); else Z.upgMany(all.filter(b => canUp(b, d.k)).sort((a, b) => lost(b) - lost(a)), d.k); },
+    mneed: d => { const e = Z.S.enclosures.find(e => e.id === +d.id); if (e) Z.upgrade(e, d.k); },
+    mneedall: () => { let n = 0, t = 0; for (const e of Z.S.enclosures) for (const k of Z.needsMissing(e)) { t++; if (Z.S.money >= Z.UPGRADES[k].cost(e)) { Z.upgrade(e, k); n++; } } Z.notify(n ? '🛠️ ' + n + ' aménagement' + (n > 1 ? 's installés' : ' installé') + (n < t ? ' (fonds insuffisants pour les autres)' : '') : 'Fonds insuffisants', n ? 'good' : 'bad'); },
+  });
+
   const oldVis = Z.html.visitors;
   Z.html.visitors = () => '<div class="btns"><button data-a="tool" data-id="p:rep">⭐ Comprendre et améliorer la réputation</button></div>' + oldVis();
   window.addEventListener('DOMContentLoaded', () => { const el = document.querySelector('#rep'); if (el) { el.dataset.a = 'tool'; el.dataset.id = 'p:rep'; el.style.cursor = 'pointer'; el.title = 'Réputation : touchez pour le détail'; } });

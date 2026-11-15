@@ -21,7 +21,7 @@
   // ---------- Barre d'outils ----------
   const TOOLS = [
     ['select', '🖐️', 'Explorer'], ['path', '🛣️', 'Allées'], ['encl', '🚧', 'Enclos'], ['shop', '🏪', 'Services'], ['ride', '🎡', 'Attractions'], ['decor', '🌳', 'Décor'], ['terra', '⛏️', 'Terrain'], ['move', '↔️', 'Déplacer'], ['demo', '🧨', 'Démolir'],
-    ['|'], ['p:staff', '👷', 'Personnel'], ['p:animals', '🦁', 'Animaux'], ['p:visitors', '🧑‍🤝‍🧑', 'Visiteurs'], ['p:fin', '💶', 'Finances'], ['p:research', '🔬', 'Recherche'], ['p:prog', '📈', 'Progression'], ['p:stats', '📊', 'Stats'], ['p:goals', '🎯', 'Missions'], ['p:world', '🌍', 'Monde'], ['view', '👁️', 'Vues'], ['p:menu', '⚙️', 'Menu'],
+    ['|'], ['p:mgmt', '🏗️', 'Bâtiments'], ['p:staff', '👷', 'Personnel'], ['p:animals', '🦁', 'Animaux'], ['p:visitors', '🧑‍🤝‍🧑', 'Visiteurs'], ['p:fin', '💶', 'Finances'], ['p:research', '🔬', 'Recherche'], ['p:prog', '📈', 'Progression'], ['p:stats', '📊', 'Stats'], ['p:goals', '🎯', 'Missions'], ['p:world', '🌍', 'Monde'], ['view', '👁️', 'Vues'], ['p:menu', '⚙️', 'Menu'],
   ];
   function renderTools() {
     $('#tools').innerHTML = TOOLS.map(t => t[0] === '|' ? '<span class="sep"></span>' :
