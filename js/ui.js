@@ -155,7 +155,7 @@
       let h = row('Réputation', `<span class="stars">${stars(r)}</span> ${r.toFixed(1).replace('.', ',')}`) + row('Dans le zoo', n) + row('Aujourd’hui', S.fin.vis) + row('Depuis l’ouverture', S.stats.visitors) + row('Affluence estimée', Math.round(Z.demand()) + ' /heure');
       if (n) h += `<h3>Moyennes</h3><div class="grid2"><div>Satisfaction${bar(av('happy'))}</div><div>Faim${bar(av('hunger'))}</div><div>Soif${bar(av('thirst'))}</div><div>Toilettes${bar(av('bladder'))}</div><div>Énergie${bar(av('energy'))}</div></div>`;
       h += Z.html.visitors();
-      h += '<h3>Ce qu’ils disent</h3>' + (Z.thoughts.length ? Z.thoughts.map(t => `<div class="quote">💭 ${esc(t)}</div>`).join('') : '<p class="muted">Pas encore d’avis. Le zoo ouvre de 9 h à 19 h.</p>');
+      h += '<h3>Ce qu’ils disent</h3>' + (Z.thoughts.length ? Z.thoughts.map(t => `<div class="quote">💭 ${esc(t)}</div>`).join('') : '<p class="muted">Pas encore d’avis. Le zoo ouvre de 9 h à 19 h (20 h au printemps, 21 h en été).</p>');
       return { title: '🧑‍🤝‍🧑 Visiteurs', html: h };
     },
     fin() {
@@ -359,7 +359,7 @@
       <li><b>📈 Progression</b> — votre zoo gagne de l’expérience et monte de niveau (15 niveaux) : nouveaux habitats, espèces, bâtiments, employés et terrains. Les chantiers durent quelques heures, les animaux commandés arrivent en 8 heures, et le bouton 🌙 permet de passer la nuit.</li>
       <li><b>↔️ Déplacer</b> — glissez un enclos ou un bâtiment pour le déplacer ; agrandissez un enclos depuis sa fiche.</li>
       <li><b>🎯 Missions</b> — acceptez des missions, suivez vos objectifs et lancez la campagne de 5 scénarios. <b>📊 Stats</b> et <b>👁️ Vues</b> vous aident à piloter.</li></ol>
-      <p class="muted">Construction : vos tracés s’ajoutent à un plan ; rien n’est payé tant que vous n’avez pas touché ✅ Valider. Appui long puis glisser : déplacer la carte pendant une construction, ou saisir un bâtiment en mode Explorer. Molette ou deux doigts : zoom. Le zoo ouvre de 9 h à 19 h ; un an pour les animaux = 10 jours.</p>`, [['C’est parti !']]);
+      <p class="muted">Construction : vos tracés s’ajoutent à un plan ; rien n’est payé tant que vous n’avez pas touché ✅ Valider. Appui long puis glisser : déplacer la carte pendant une construction, ou saisir un bâtiment en mode Explorer. Molette ou deux doigts : zoom. Le zoo ouvre de 9 h à 19 h (20 h au printemps, 21 h en été) ; un an pour les animaux = 10 jours.</p>`, [['C’est parti !']]);
   }
 
   // ---------- Barre du haut ----------
@@ -370,7 +370,7 @@
     const xi = Z.xpInfo(); $('#lvl').innerHTML = `⭐ Niv. <b>${S.level}</b><span class="xpbar"><i style="width:${xi.pct}%"></i></span>`;
     $('#vis').textContent = S.visitors.length; $('#rep').innerHTML = `<span class="stars">${stars(r)}</span> ${r.toFixed(1).replace('.', ',')}`;
     $('#clock').textContent = `${Z.html.event()}${Z.html.season()} · ${WX[S.weather]} Jour ${S.day} · ${String(h).padStart(2, '0')}:${String(m - m % 10).padStart(2, '0')}`;
-    $('#open').textContent = Z.isOpen() ? 'Ouvert' : 'Fermé'; $('#open').className = 'tag ' + (Z.isOpen() ? 'ok' : 'bad');
+    $('#open').textContent = Z.isOpen() ? 'Ouvert jusqu’à ' + Z.closeHour() + ' h' : 'Fermé'; $('#open').title = 'Horaires : 9 h à ' + Z.closeHour() + ' h (19 h en automne et en hiver, 20 h au printemps, 21 h en été)'; $('#open').className = 'tag ' + (Z.isOpen() ? 'ok' : 'bad');
     const sk = $('#skip'); if (sk) sk.style.display = Z.canSkip() ? '' : 'none';
     document.querySelectorAll('#speed button[data-v]').forEach(b => b.classList.toggle('on', +b.dataset.v === S.speed));
     const g = Z.GOALS[S.goal], sc = Z.scenario(); $('#goal').textContent = sc ? `${sc.icon} ${sc.name} — jour ${S.day}/${sc.days} · ${sc.goals.filter(x => x.c(S)).length}/${sc.goals.length} objectifs` : g ? '🎯 ' + g.t : '🏆 Tous les objectifs sont atteints !';

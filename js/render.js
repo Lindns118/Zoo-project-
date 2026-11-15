@@ -280,9 +280,9 @@
     }
     // nuit et intempéries
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const hr = S.minute / 60, dark = hr < 5 ? .42 : hr < 7 ? .42 * (7 - hr) / 2 : hr > 21.5 ? .42 : hr > 19 ? .42 * (hr - 19) / 2.5 : 0;
+    const hr = S.minute / 60, ls = Z.lateShift(), dark = hr < 5 ? .42 : hr < 7 ? .42 * (7 - hr) / 2 : hr > 21.5 + ls ? .42 : hr > 19 + ls ? .42 * (hr - 19 - ls) / 2.5 : 0;
     const tint = Z.season().tint; if (tint) { ctx.fillStyle = tint; ctx.fillRect(0, 0, cw, ch); }
-    const warm = hr > 17 && hr < 20.5 ? Math.sin((hr - 17) / 3.5 * Math.PI) * .16 : hr > 5.5 && hr < 8 ? Math.sin((hr - 5.5) / 2.5 * Math.PI) * .1 : 0;
+    const warm = hr > 17 + ls && hr < 20.5 + ls ? Math.sin((hr - 17 - ls) / 3.5 * Math.PI) * .16 : hr > 5.5 && hr < 8 ? Math.sin((hr - 5.5) / 2.5 * Math.PI) * .1 : 0;
     if (warm > 0) { ctx.fillStyle = 'rgba(255,140,50,' + warm + ')'; ctx.fillRect(0, 0, cw, ch); }
     if (dark > 0) {
       ctx.fillStyle = 'rgba(15,25,70,' + dark + ')'; ctx.fillRect(0, 0, cw, ch);

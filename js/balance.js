@@ -60,13 +60,14 @@
     if (oldD) oldD(); const S = Z.S;
     if (S.full > 15) Z.notify(`🚧 Parc saturé : environ ${Math.round(S.full)} personnes ont renoncé à entrer hier. Agrandissez les allées ou ajoutez des enclos et attractions (voir 🧑‍🤝‍🧑 Visiteurs).`, 'warn');
     S.fullY = S.full || 0; S.full = 0;
+    const sn = Z.seasonIdx(); if (S.snSeen != null && S.snSeen !== sn) Z.notify(Z.season().icon + ' ' + Z.season().n + ' : le zoo ferme désormais à ' + Z.closeHour() + ' h.', 'info'); S.snSeen = sn;
   };
   // ---------- Prestige : à partir du niveau 7, le public accepte des prix plus élevés et dépense davantage ----------
   Z.prestige = () => 1 + Math.max(0, Z.S.level - 6) * .05;
   const oldFair = Z.fairPrice; Z.fairPrice = () => oldFair() * Z.prestige();
   const oldSpawn = Z.onSpawn; Z.onSpawn = function (v) { v.money = Math.round(v.money * Z.prestige()); oldSpawn(v); };
   // ---------- Passer la nuit : avance d'un coup jusqu'à 8 h quand le zoo est fermé et vide ----------
-  Z.canSkip = () => { const S = Z.S, m = S.minute; return !S.visitors.length && (m >= 19 * 60 || m < 8 * 60); };
+  Z.canSkip = () => { const S = Z.S, m = S.minute; return !S.visitors.length && (m >= Z.closeHour() * 60 || m < 8 * 60); };
   Z.skipNight = function () { if (!Z.canSkip()) return; const m = Z.S.minute; Z.advance(m < 480 ? 480 - m : 1440 - m + 480); Z.notify('🌅 Bonjour ! Il est 8 h, le zoo ouvre dans une heure.', 'info'); };
   Z.ACT.skipnight = Z.skipNight;
   // ---------- Première mission guidée, dès le deuxième jour ----------

@@ -160,8 +160,11 @@
     const pf = clamp(1.6 - S.ticket / Z.fairPrice() * .8, 0, 1.5);
     return (2 + 1.6 * Math.sqrt(at) + at * .06) * Z.repFactor() * pf * Z.weatherF() * (S.ads ? S.ads.f : 1) * Z.rmod('demand') * Z.mapMod('demand') * Z.evMod('demand') * Z.seasonMod() * Z.diffMod();
   };
-  Z.isOpen = () => { const h = Z.S.minute / 60; return h >= 9 && h < 19; };
-  Z.isNight = () => { const h = Z.S.minute / 60; return h >= 21 || h < 6; };
+  // Horaires : fermeture à 19 h en automne et en hiver, 20 h au printemps, 21 h en été (les journées sont plus longues)
+  Z.closeHour = () => 19 + [1, 2, 0, 0][Z.seasonIdx()];
+  Z.lateShift = () => Z.closeHour() - 19;                       // décale la tombée du jour et le coucher des animaux
+  Z.isOpen = () => { const h = Z.S.minute / 60; return h >= 9 && h < Z.closeHour(); };
+  Z.isNight = () => { const h = Z.S.minute / 60; return h >= 21 + Z.lateShift() * .75 || h < 6; };
   Z.happyTarget = function (e, a) {
     const sp = SP[a.sp], n = e.animals.length; let h = 76 + Z.climateBonus(e.biome);
     const ratio = e.w * e.h / (n * sp.space);
@@ -541,10 +544,10 @@
     if (S.minute >= 1440) { S.minute -= 1440; S.lastHour = -1; daily(); }
     const h = Math.floor(S.minute / 60); if (h !== S.lastHour) { S.lastHour = h; hourly(); }
     const hr = S.minute / 60;
-    if (hr >= 9 && hr < 17.5) { const d0 = Z.demand() * (hr < 12 ? 1.5 : hr < 15 ? 1 : .4), fill = Z.parkFill(), dm = d0 * fill, cap = Z.entryCap(); if (fill < 1) S.full = (S.full || 0) + d0 * (1 - fill) / 60 * dt; if (dm > cap) S.lost = (S.lost || 0) + (dm - cap) / 60 * dt; S.spawnAcc = (S.spawnAcc || 0) + Math.min(dm, cap) / 60 * dt * Z.rnd(.5, 1.5); while (S.spawnAcc >= 1) { S.spawnAcc--; if (S.visitors.length < 700) spawnVisitor(); } }
+    if (hr >= 9 && hr < Z.closeHour() - 1.5) { const d0 = Z.demand() * (hr < 12 ? 1.5 : hr < 15 ? 1 : .4), fill = Z.parkFill(), dm = d0 * fill, cap = Z.entryCap(); if (fill < 1) S.full = (S.full || 0) + d0 * (1 - fill) / 60 * dt; if (dm > cap) S.lost = (S.lost || 0) + (dm - cap) / 60 * dt; S.spawnAcc = (S.spawnAcc || 0) + Math.min(dm, cap) / 60 * dt * Z.rnd(.5, 1.5); while (S.spawnAcc >= 1) { S.spawnAcc--; if (S.visitors.length < 700) spawnVisitor(); } }
     for (const v of S.visitors) visitorUpdate(v, dt);
     if (S.visitors.some(v => v.gone)) S.visitors = S.visitors.filter(v => !v.gone);
-    if (hr >= 21 && S.visitors.length) S.visitors = [];
+    if (hr >= Math.min(23.5, Z.closeHour() + 2) && S.visitors.length) S.visitors = [];
     if (S.visitors.length > S.stats.peak) S.stats.peak = S.visitors.length;
     for (const s of S.staff) if (!Z.STAFF[s.type].desk) staffUpdate(s, dt);
     animalsMove(dt);

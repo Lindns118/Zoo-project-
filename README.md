@@ -38,6 +38,7 @@ Jeu de gestion de zoo réaliste, jouable directement dans le navigateur (aucune 
 - **Animaux** : généalogie et consanguinité, bourse d'échange entre zoos, réintroduction d'espèces menacées dans la nature.
 - **Carrière du personnel** : expérience et formation, salaires réglables, moral, grèves et démissions, zones de travail.
 - **Entrepôt** : la nourriture se commande et se stocke ; rupture de stock si on oublie.
+- **Horaires saisonniers** : ouverture à 9 h ; fermeture à 19 h en automne et en hiver, 20 h au printemps, 21 h en été, avec une tombée du jour décalée d'autant.
 - **Saisons et ambiance** : quatre saisons qui changent l'affluence, la météo et les couleurs ; sons synthétisés (foule, oiseaux, alertes) et musique en option.
 - **Bac à sable** : une partie à part où tout est débloqué. **Partage** : un code à copier pour envoyer son zoo à un ami.
 - **Recherche** : un budget quotidien et des chercheurs produisent des points pour 19 projets (animaux, attractions, gestion).
